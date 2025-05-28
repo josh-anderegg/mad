@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+
+import rasterio
+import numpy as np
+import argparse
+import glob 
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+from datetime import datetime
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.linear_model import Lasso
+from sklearn.metrics import mean_squared_error
+
+CHANNELS = ['AOT', 'B11', 'B12', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'TCI_B', 'TCI_G', 'TCI_R']
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument("images", nargs="+" , help="Path to tif file or files")
+parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose mode")
+parser.add_argument("-l", "--lambda-count", type=int, default=25, help="Amount of Lambdas iterated over (default: 10)")
+parser.add_argument("-m", "--minimal-lambda", type=int, default=-4, help="Minimal lambda used (10^-m) (default: -4)")
+parser.add_argument("-g", "--generate-graphs", default=True, action="store_false", help="Set if you want the script to output graphs")
+parser.add_argument("-o", "--output", type=str, default="outputs" , help="Path the output directory for the graphs (default: .)")
+
+args = parser.parse_args()
+
+image_paths = []
+for pattern in args.images:
+    image_paths.extend(glob.glob(pattern))
+
+LAMBDA_COUNT = args.lambda_count
+MINIMAL_LAMBDA = args.minimal_lambda
+
+def tif_to_vec(path):
+    with rasterio.open(path) as src:
+        data = src.read()
+        bands, _, _ = data.shape
+        normalized_data = np.empty_like(data, dtype=np.float32)
+        scaler = MinMaxScaler()
+        for i in range(bands):
+            band = data[i].reshape(-1, 1)
+            norm_band = scaler.fit_transform(band).reshape(data.shape[1:])
+            normalized_data[i] = norm_band
+
+        pixels = normalized_data.reshape(bands, -1).T
+        
+        if '_mine' in src.descriptions:
+            y = pixels[:, -1]
+            X = np.delete(pixels, -1, axis=1)
+        else:
+            y = np.zeros(pixels.shape[0])
+            X = pixels
+        
+        return X, y
+
+lambdas = lambdas = np.logspace(MINIMAL_LAMBDA, 0, LAMBDA_COUNT).tolist()
+
+remaining_loss = []
+coefficients = []
+for l in lambdas:
+    X = []
+    y = []
+    for path in image_paths:
+        t_X, t_y = tif_to_vec(path)
+        X.append(t_X)
+        y.append(t_y)
+    
+    X = np.concatenate(X)
+    y = np.concatenate(y)
+    lasso = Lasso(alpha=l)
+    lasso.fit(X, y)
+    coeffs = lasso.coef_
+    y_pred = lasso.predict(X)
+    mse = mean_squared_error(y, y_pred)
+    # l1_penalty = l * np.sum(np.abs(coeffs))
+    loss = mse # + l1_penalty
+
+    remaining_loss.append(loss)
+    coefficients.append(coeffs)
+    
+
+if args.generate_graphs:
+    path = args.output
+    combined = zip(lambdas, coefficients)
+    table = []
+
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    for (l, coeffs) in combined:
+        result = {}
+        result['lambda'] = l
+        for i, coeff in enumerate(coeffs):
+            result[CHANNELS[i]] = coeff
+        table.append(result)
+
+    df_result = pd.DataFrame(table)
+    df_long = df_result.melt(id_vars='lambda', var_name='coefficient', value_name='magnitude')
+
+    # Plot the change in coefficients
+    plt.figure(figsize=(10, 6))
+    sns.relplot(data=df_long, kind='line', x='lambda', y='magnitude', hue='coefficient', palette="Paired")
+    plt.xscale("log") 
+    plt.title("Lasso Coefficients for a Lambda")
+    plt.xlabel("Lambda")
+    plt.ylabel("Coefficient Value")
+    plt.savefig(f"{path}/coeffs_{timestamp}.png")
+
+    # Plot the change in loss
+    loss_lambdas = pd.DataFrame(map(lambda x: {"lambda": x[0], "loss": x[1]}, zip(lambdas, remaining_loss)))
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=loss_lambdas, x='lambda', y='loss')
+    plt.xscale("log")
+    plt.title("Loss for Lambda")
+    plt.xlabel("Lambda")
+    plt.ylabel("Loss (MSE)")
+    plt.savefig(f"{path}/mse_{timestamp}.png")
