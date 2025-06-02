@@ -13,7 +13,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import Lasso
 from sklearn.metrics import mean_squared_error
 
-CHANNELS = ['AOT', 'B11', 'B12', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'TCI_B', 'TCI_G', 'TCI_R']
+BANDS = ['AOT', 'B11', 'B12', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'TCI_B', 'TCI_G', 'TCI_R']
 
 parser = argparse.ArgumentParser()
 
@@ -22,6 +22,8 @@ parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose
 parser.add_argument("-l", "--lambda-count", type=int, default=25, help="Amount of Lambdas iterated over (default: 10)")
 parser.add_argument("-m", "--minimal-lambda", type=int, default=-4, help="Minimal lambda used (10^-m) (default: -4)")
 parser.add_argument("-g", "--generate-graphs", default=True, action="store_false", help="Set if you want the script to output graphs")
+parser.add_argument("-c", "--count", type=int, default=10, help="Set the amount of images that should be used (default: 10)")
+parser.add_argument("-s", "--stats", default=False, action="store_true", help="Set to perform additional stat checks (default: False)")
 parser.add_argument("-o", "--output", type=str, default="outputs" , help="Path the output directory for the graphs (default: .)")
 
 args = parser.parse_args()
@@ -59,29 +61,45 @@ lambdas = lambdas = np.logspace(MINIMAL_LAMBDA, 0, LAMBDA_COUNT).tolist()
 
 remaining_loss = []
 coefficients = []
-for l in lambdas:
-    X = []
-    y = []
-    for path in image_paths:
-        t_X, t_y = tif_to_vec(path)
-        X.append(t_X)
-        y.append(t_y)
-    
-    X = np.concatenate(X)
-    y = np.concatenate(y)
+X = []
+y = []
+
+c = 0
+for path in image_paths:
+    t_X, t_y = tif_to_vec(path)
+    X.append(t_X)
+    y.append(t_y)
+    c += 1
+    if c >= args.count:
+        break
+    if args.verbose:
+        print(f"\rImage {c+1}/{args.count} loaded", end="")
+
+if args.verbose:
+    print("Loaded all images")
+
+X = np.concatenate(X)
+y = np.concatenate(y)
+
+for i, l in enumerate(lambdas):
+    if args.verbose:
+        print(f"\rPerforming Lasso for Lambda {i+1}/{len(lambdas)} done", end="")
     lasso = Lasso(alpha=l)
     lasso.fit(X, y)
     coeffs = lasso.coef_
     y_pred = lasso.predict(X)
     mse = mean_squared_error(y, y_pred)
-    # l1_penalty = l * np.sum(np.abs(coeffs))
-    loss = mse # + l1_penalty
+    loss = mse 
 
     remaining_loss.append(loss)
     coefficients.append(coeffs)
-    
+
+if args.verbose:
+    print("All Lassos performed")
 
 if args.generate_graphs:
+    if args.verbose:
+        print("Generating graphs")
     path = args.output
     combined = zip(lambdas, coefficients)
     table = []
@@ -91,7 +109,7 @@ if args.generate_graphs:
         result = {}
         result['lambda'] = l
         for i, coeff in enumerate(coeffs):
-            result[CHANNELS[i]] = coeff
+            result[BANDS[i]] = coeff
         table.append(result)
 
     df_result = pd.DataFrame(table)
