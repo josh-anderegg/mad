@@ -1,13 +1,13 @@
-# Jornal for MAD
+# MAD journal
 
 ## Week 1
 
 ### Goals
-- Make the images used for the ML part easily reproducible.
-- Get a lasso regression going for the 12 input variables.
-- Use other statistical values to describe the correlation between truth and input variables.
-- Plot the findings.
-- Do a distinction for different types of images (mines from different regions/seasons).
+- [ ] Make the images used for the ML part easily reproducible.
+- [ ] Get a lasso regression going for the 12 input variables.
+- [ ] Use other statistical values to describe the correlation between truth and input variables.
+- [ ] Plot the findings.
+- [ ] Do a distinction for different types of images (mines from different regions/seasons).
 
 ### Notes
 - Reproducibility large issue with R?
@@ -20,4 +20,5 @@
 - Biggest contributor so far seems to be SWIR 1, which seems to be an indicator for heat, which probably is due to the absorption of sunlight by "rock" hence mines.
     - How does this differ for different image types? Forest vs. mining facilities that are not surrounded by trees.
     - Maybe further classify the images into different topological types? Forests, vs, deserts vs prarie etc?
-### Progress
+### Planning
+
