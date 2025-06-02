@@ -109,6 +109,8 @@ if args.generate_graphs:
         result = {}
         result['lambda'] = l
         for i, coeff in enumerate(coeffs):
+            if i >= 12:
+                continue
             result[BANDS[i]] = coeff
         table.append(result)
 

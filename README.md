@@ -35,7 +35,7 @@
     - **Solution**: From all images in the test set, select a random (predictably) subset. Potential issue here is that there will be only a small amount of them actually being a mine pixel
 - The classification with Lasso will most probably be to imprecise.
     - **Solution**: Try to improve the precision of lasso by excluding certain pixels from the learning dataset (like Marc proposed, ones with larger distance to the polygon edge), alternatively instead of lasso learning a binary assignment is mine or not, have it learn a probability (based on gaussing the input)
-    - **Solution**: Consider a more intricate pipeline that combines visual computing techniques with object detection ML tools.
+    - **Solution**: Consider a more intricate pipeline that combines visual computing techniques (Mainly SIFT) with object detection ML tools.
 
  
 
