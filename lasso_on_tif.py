@@ -7,11 +7,16 @@ import glob
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import csv 
+import random
 
 from datetime import datetime
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import Lasso
 from sklearn.metrics import mean_squared_error
+
+timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
 
 BANDS = ['AOT', 'B11', 'B12', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'TCI_B', 'TCI_G', 'TCI_R']
 
@@ -32,6 +37,13 @@ image_paths = []
 for pattern in args.images:
     image_paths.extend(glob.glob(pattern))
 
+random.shuffle(image_paths)
+image_paths = image_paths[:args.count]
+
+if args.generate_graphs:
+    with open(f"{args.output}/files_{timestamp}.txt", 'w') as file:
+        file.write("\n".join(image_paths))
+
 LAMBDA_COUNT = args.lambda_count
 MINIMAL_LAMBDA = args.minimal_lambda
 
@@ -47,7 +59,8 @@ def tif_to_vec(path):
             normalized_data[i] = norm_band
 
         pixels = normalized_data.reshape(bands, -1).T
-        
+        pixels = np.delete(pixels, [-2, -3, -4], axis=1)
+
         if '_mine' in src.descriptions:
             y = pixels[:, -1]
             X = np.delete(pixels, -1, axis=1)
@@ -104,7 +117,6 @@ if args.generate_graphs:
     combined = zip(lambdas, coefficients)
     table = []
 
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     for (l, coeffs) in combined:
         result = {}
         result['lambda'] = l
@@ -135,3 +147,8 @@ if args.generate_graphs:
     plt.xlabel("Lambda")
     plt.ylabel("Loss (MSE)")
     plt.savefig(f"{path}/mse_{timestamp}.png")
+
+    with open(f"{path}/values_{timestamp}.csv", "w") as file:
+        coefficients_w = [['AOT', 'B11', 'B12', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9']] + coefficients
+        writer = csv.writer(file)
+        writer.writerows(coefficients_w)
