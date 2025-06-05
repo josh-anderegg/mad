@@ -9,6 +9,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import csv 
 import random
+import string
 
 from datetime import datetime
 from sklearn.preprocessing import MinMaxScaler
@@ -30,8 +31,20 @@ parser.add_argument("-g", "--generate-graphs", default=True, action="store_false
 parser.add_argument("-c", "--count", type=int, default=10, help="Set the amount of images that should be used (default: 10)")
 parser.add_argument("-s", "--stats", default=False, action="store_true", help="Set to perform additional stat checks (default: False)")
 parser.add_argument("-o", "--output", type=str, default="outputs" , help="Path the output directory for the graphs (default: .)")
+parser.add_argument("-r", "--random-seed", type=str, default=None , help="Random string used for all the randomization done.")
 
 args = parser.parse_args()
+
+RANDOM_SYMBOLS = string.ascii_letters + string.digits
+if args.random_seed == None:
+    seed = ''.join(random.choices(RANDOM_SYMBOLS, k=32))
+else:
+    seed = args.random_seed
+
+if args.verbose:
+    print(f'used seed: {seed}')
+
+random.seed(seed)
 
 image_paths = []
 for pattern in args.images:
