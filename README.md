@@ -34,8 +34,15 @@
 - Currently I only take in single images (or multiple of them) to perform the lasso regression. To have a less biased input, I would need to perform lasso regression over all of the images which should not be possible due to memory constraints.
     - **Solution**: From all images in the test set, select a random (predictably) subset. Potential issue here is that there will be only a small amount of them actually being a mine pixel
 - The classification with Lasso will most probably be to imprecise.
-    - **Solution**: Try to improve the precision of lasso by excluding certain pixels from the learning dataset (like Marc proposed, ones with larger distance to the polygon edge), alternatively instead of lasso learning a binary assignment is mine or not, have it learn a probability (based on gaussing the input)
+    - **Solution**: Try to improve the precision of lasso by excluding certain pixels from the learning dataset (e.g., ones with larger distance to the polygon edge), alternatively instead of lasso learning a binary assignment is mine or not, have it learn a probability (based on gaussing the input)
     - **Solution**: Consider a more intricate pipeline that combines visual computing techniques (Mainly SIFT) with object detection ML tools.
 
- 
+ ## Week 2
+ - [ ] Use Gaussian blur on the mouse dataset, to train the lasso on predicting values $[-1, 1]$ indicating the confidence of that pixel being a mine.
+ - [ ] Enable randomization for the Lasso pixels, choose pixels that probably are a good truth to train on.
+ - [ ] Use clustering to determine for which different images which lasso can be used.
+ - [ ] Visualize the result of the Lasso .
+ - [ ] Perfom first test evalulations of the trained final Lasso.
+
+### Notes
 
