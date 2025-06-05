@@ -38,8 +38,8 @@
     - **Solution**: Consider a more intricate pipeline that combines visual computing techniques (Mainly SIFT) with object detection ML tools.
 
  ## Week 2
- - [ ] Use Gaussian blur on the mouse dataset, to train the lasso on predicting values $[-1, 1]$ indicating the confidence of that pixel being a mine.
- - [ ] Enable randomization for the Lasso pixels, choose pixels that probably are a good truth to train on.
+ - [x] Use Gaussian blur on the maus dataset, to train the lasso on predicting values $[0, 1]$ indicating the confidence of that pixel being a mine.
+ - [x] Enable randomization for the Lasso pixels, choose pixels that probably are a good truth to train on.
  - [ ] Use clustering to determine for which different images which lasso can be used.
  - [ ] Visualize the result of the Lasso .
  - [ ] Perfom first test evalulations of the trained final Lasso.
