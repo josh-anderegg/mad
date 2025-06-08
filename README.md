@@ -41,8 +41,8 @@
  - [x] Use Gaussian blur on the maus dataset, to train the lasso on predicting values $[0, 1]$ indicating the confidence of that pixel being a mine.
  - [x] Enable randomization for the Lasso pixels, choose pixels that probably are a good truth to train on.
  - [ ] Use clustering to determine for which different images which lasso can be used.
- - [ ] Visualize the result of the Lasso .
- - [ ] Perfom first test evalulations of the trained final Lasso.
+ - [x] Visualize the result of the Lasso .
+ - [x] Perfom first test evalulations of the trained final Lasso.
 
 ### Notes
 

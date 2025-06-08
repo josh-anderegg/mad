@@ -38,6 +38,7 @@ parser.add_argument("-c", "--count", type=int, default=10, help="Set the amount 
 parser.add_argument("-o", "--output", type=str, default="outputs" , help="Path the output directory for the graphs (default: .)")
 parser.add_argument("-r", "--random-seed", type=str, default=None , help="Random string used for all the randomization done.")
 parser.add_argument("-p", "--pixel-count", type=int, default=1000 , help="Maximal pixel count per image that is used to perform the lasso (default: 1000)")
+parser.add_argument("-e", "--example-count", type=int, default=0, help="Number of output example images to showcase the prediction accuaracy. (default: 0)")
 parser.add_argument("--pixel-ratios", type=str, default='0.5, 0.1, 0.4' , help="Ratio between pixels taken inside, on the border and outside of the ground truth (default: 0.5, 0.1, 0.4)")
 parser.add_argument("-s", "--sigma", type=float, default=5 , help="Sigma used to blur the ground truth. (default: 5)")
 parser.add_argument("--train-percentage", type=float, default=0.8, help="Percentage of the images that are used for the training vs. testing (default: 0.8)")
@@ -54,6 +55,7 @@ OUTPUT = args.output
 GENERATE_OUTPUT = args.generate_output
 PIXEL_PER_IMAGE = args.pixel_count
 TRAIN_PERCENTAGE = args.train_percentage
+EXAMPLE_COUNT = args.example_count
 
 try:
     IN, EDGE, OUT = map(float, args.pixel_ratios.split(','))
@@ -85,8 +87,7 @@ test_count = COUNT - train_count
 
 train_images = image_paths[:train_count]
 test_images = image_paths[train_count:][:test_count]
-
-def load_set(image_paths, tstr = "", sample_pixels = True):
+def load_set(image_paths, tstr = "", sample_pixels = True, silent = False):
     X = []
     y = []
 
@@ -98,15 +99,15 @@ def load_set(image_paths, tstr = "", sample_pixels = True):
                 t_X, t_y = future.result()
                 X.append(t_X)
                 y.append(t_y)
-                if VERBOSE:
+                if VERBOSE and not silent:
                     size += t_X.nbytes + t_y.nbytes
                     print(f"\rloaded {i+1}/{len(image_paths)} {tstr} images, {size / (1024**3):2f} GB used", end="")
-            except:
-                if VERBOSE:
-                    print("Concurrency error happened, skipped an image")
+            except Exception as e:
+                if VERBOSE and not silent:
+                    print(f"Concurrency error happened, skipped an image \n{e}")
 
-    if VERBOSE:
-        print("\nLoaded all images")
+    if VERBOSE and not silent:
+        print(f"\nLoaded all {tstr} images")
 
     X = np.concatenate(X)
     y = np.concatenate(y)
@@ -223,9 +224,13 @@ if GENERATE_OUTPUT:
     symlink_abs = os.path.abspath(symlink_path)
     os.symlink(target_abs, symlink_abs, target_is_directory=True)
 
-    X_exemplify, _ = load_set(test_images[0:], "example", False)
-    print(X_exemplify.shape)
-    y_example = best_model.predict(X_exemplify)
-    output_prediction(y_example, test_images[0], OUTPUT + '/' +timestamp)
+    for i in range(EXAMPLE_COUNT):
+        if VERBOSE:
+            print(f"\rGenerating example output {i+1}/{EXAMPLE_COUNT}", end="")
+
+        X_exemplify, _ = load_set([test_images[i]], "example", False, silent=True)
+        y_example = best_model.predict(X_exemplify)
+        output_prediction(y_example, test_images[i], OUTPUT + '/' + timestamp)
+    print("\nAll examples output")
 
 
