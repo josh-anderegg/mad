@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import ee
-import os
 import pandas as pd
 import requests
 import rasterio
