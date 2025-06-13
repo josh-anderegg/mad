@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-
-import rasterio
 import numpy as np
 import argparse
 import glob 
