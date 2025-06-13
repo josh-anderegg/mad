@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import ee
 import os
 import pandas as pd
@@ -6,24 +7,24 @@ import rasterio
 import geopandas as gpd
 from shapely.geometry import box
 from rasterio.features import rasterize
-output_dir = "dataset/s2"
-os.makedirs(output_dir, exist_ok=True)
+from concurrent.futures import ProcessPoolExecutor
+from tqdm import tqdm
 
 ee.Authenticate()
 ee.Initialize(project='siam-josh')  
 
-boxes = pd.read_csv('grid_3857.csv')
-
-bboxes = ee.featurecollection.FeatureCollection([ee.geometry.Geometry.BBox(row['min_lon'], row['min_lat'], row['max_lon'], row['max_lat']) for _, row in boxes.iterrows()])
+boxes = pd.read_csv('data/grids/grid_5500_epsg3857.csv')
 
 CHANNELS = ["B4", "B3", "B2", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12", "AOT"]
+MAX_RETRIES = 100
 
-gdf = gpd.read_file('input/maus/global_mining_polygons_v2.gpkg').to_crs(epsg=4326)
-sindex = gdf.sindex
+maus = gpd.read_file('data/maus/global_mining_polygons_v2.gpkg').to_crs(epsg=4326)
 
-for _, row in boxes.iterrows():
-    gee_box = ee.geometry.Geometry.BBox(row['min_lon'], row['min_lat'], row['max_lon'], row['max_lat'])
-
+def process_tile(tile):
+    gee_box = ee.geometry.Geometry.BBox(tile['min_lon'], tile['min_lat'], tile['max_lon'], tile['max_lat'])
+    mid_lon = tile['max_lon'] + tile['min_lon'] / 2 
+    mid_lat = tile['max_lat'] + tile['min_lat'] / 2
+    img_string = f'data/images/{mid_lon:.6f}_{mid_lat:.6f}.tif'
     image = ee.imagecollection.ImageCollection("COPERNICUS/S2_SR_HARMONIZED") \
         .filterDate('2019-01-01', '2020-01-01') \
         .filterBounds(gee_box) \
@@ -38,27 +39,32 @@ for _, row in boxes.iterrows():
     }
 
     url = image.getDownloadURL(params)
-    response = requests.get(url)
-    with open('sentinel_image.tif', 'wb') as f:
+    
+    tries = 0
+    response = None
+    while tries < MAX_RETRIES:
+        try:
+            response = requests.get(url)
+            break
+        except:
+            tries += 1
+
+    if not response:
+        return
+
+    with open(img_string, 'wb') as f:
         f.write(response.content)
 
-    with rasterio.open('sentinel_image.tif') as src:
+    with rasterio.open(img_string) as src:
         meta = src.meta.copy()
         transform = src.transform
         width, height = src.width, src.height
         crs = src.crs
         bounds = src.bounds
         bands_data = src.read() 
-
-    # with rasterio.open('sentinel_image.tif', 'w') as src:
-    #     meta = src.meta.copy()
-    #     transform = src.transform
-    #     width, height = src.width, src.height
-    #     crs = src.crs
-    #     bounds = src.bounds
         
     bbox_gdf = gpd.GeoDataFrame(geometry=[box(*bounds)], crs=crs)
-    gdf_in_tile = gpd.overlay(gdf.to_crs(crs), bbox_gdf, how='intersection')
+    gdf_in_tile = gpd.overlay(maus.to_crs(crs), bbox_gdf, how='intersection')
 
     shapes = ((geom, 1) for geom in gdf_in_tile.geometry if geom.is_valid and not geom.is_empty)
     mine_mask = rasterize(
@@ -74,7 +80,7 @@ for _, row in boxes.iterrows():
         'dtype': 'uint16'  # adjust if needed
     })
 
-    with rasterio.open('sentinel_image.tif', 'w', **meta) as dst:
+    with rasterio.open(img_string, 'w', **meta) as dst:
         for i in range(bands_data.shape[0]):
             dst.write(bands_data[i], i + 1)
 
@@ -93,5 +99,13 @@ for _, row in boxes.iterrows():
         dst.set_band_description(12, 'AOT: (Aerorosol Optical Thickness)')
         dst.set_band_description(13, 'Mine: (MAUS mining asset)')
 
-    break
+
+
+tiles = [tile for _, tile in boxes.iterrows()]
+
+results = []
+with ProcessPoolExecutor() as executor:
+    for result in tqdm(executor.map(process_tile, tiles), total=len(tiles)):
+        results.append(result)
+
 
