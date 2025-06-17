@@ -1,5 +1,10 @@
 /.venv
-/data
+/data/grids
+/data/temp
+/data/test
+/data/train
+/data/validation
+/data/images
 /rscripts
 /Input
 /outputs
