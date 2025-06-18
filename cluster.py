@@ -17,6 +17,9 @@ for image in os.listdir(IMAGE_PATH):
         biome = metadata['BIOME'].lower()
     biome = biome.replace(' ', '_')
     biome = biome.replace('/', '_')
+    biome = biome.replace(',', '')
+    biome = biome.replace('&', '')
+    biome = biome.replace('__', '_')
     with open(CLUSTER_PATH + biome+'.txt', 'a') as file:
         file.write(IMAGE_PATH+image+'\n')
 
