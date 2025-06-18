@@ -1,12 +1,7 @@
 /.venv
-/data/grids
-/data/temp
-/data/test
-/data/train
-/data/validation
-/data/images
+/data
 /rscripts
 /Input
 /outputs
-/__pycache__
+__pycache__
 /old
