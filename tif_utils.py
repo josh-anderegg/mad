@@ -44,8 +44,9 @@ def output_prediction(prediction_band, image_path, output_path):
         prediction_band = prediction_band.reshape((height, width))
         original_band_names = [src.descriptions[i] if src.descriptions[i] else f"Band {i}" for i in range(existing_data.shape[0])]
     path = image_path.split('/')[-1]
-
-    meta.update(count=existing_data.shape[0] + 1)
+    
+    # Kinda sketchy to do the type conversion here, should be fine though for showcase purposes
+    meta.update(count=existing_data.shape[0] + 1, dtype='float32')
 
     with rasterio.open(f"{output_path}/prediction_{path}", "w", **meta) as dst:
         for i in range(existing_data.shape[0]):
