@@ -166,7 +166,7 @@ def process_tile(tile):
     os.remove(temp_sat)
     os.remove(temp_cov)
 
-tiles = [tile for _, tile in boxes.iterrows()][:100]
+tiles = [tile for _, tile in boxes.iterrows()]
 
 results = []
 with ProcessPoolExecutor(max_workers=8) as executor:
