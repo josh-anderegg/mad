@@ -17,7 +17,7 @@ def tif_to_vec(path, IN, EDGE, PIXEL_PER_IMAGE, SIGMA, sample_pixels=True):
 
         normalized_data[-1] = gaussian_filter(normalized_data[-1], sigma=SIGMA)
         pixels = normalized_data.reshape(bands, -1).T
-        pixels = np.delete(pixels, [-2, -3, -4], axis=1) # Delete the RGB channels for visualization
+        # pixels = np.delete(pixels, [-2, -3, -4], axis=1) # Delete the RGB channels for visualization
         if sample_pixels:
             pixels = pick_quality_pixels(pixels, IN, EDGE, PIXEL_PER_IMAGE)
         y = pixels[:, -1]
