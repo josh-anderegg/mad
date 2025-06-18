@@ -10,6 +10,7 @@ import random
 import string
 import json 
 import os
+import joblib
 
 from datetime import datetime
 from sklearn.linear_model import Lasso
@@ -23,7 +24,7 @@ from sklearn.exceptions import ConvergenceWarning
 simplefilter("ignore", category=ConvergenceWarning)
 
 
-BANDS = ['AOT', 'B11', 'B12', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'TCI_B', 'TCI_G', 'TCI_R']
+BANDS = ["B4", "B3", "B2", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12", "AOT"]
 
 parser = argparse.ArgumentParser()
 
@@ -36,7 +37,6 @@ parser.add_argument("-c", "--count", type=int, default=10, help="Set the amount 
 parser.add_argument("-o", "--output", type=str, default="outputs" , help="Path the output directory for the graphs (default: .)")
 parser.add_argument("-r", "--random-seed", type=str, default=None , help="Random string used for all the randomization done.")
 parser.add_argument("-p", "--pixel-count", type=int, default=1000 , help="Maximal pixel count per image that is used to perform the lasso (default: 1000)")
-parser.add_argument("-e", "--example-count", type=int, default=0, help="Number of output example images to showcase the prediction accuaracy. (default: 0)")
 parser.add_argument("--pixel-ratios", type=str, default='0.5, 0.1, 0.4' , help="Ratio between pixels taken inside, on the border and outside of the ground truth (default: 0.5, 0.1, 0.4)")
 parser.add_argument("-s", "--sigma", type=float, default=5 , help="Sigma used to blur the ground truth. (default: 5)")
 parser.add_argument("--train-percentage", type=float, default=0.8, help="Percentage of the images that are used for the training vs. testing (default: 0.8)")
@@ -53,7 +53,6 @@ OUTPUT = args.output
 GENERATE_OUTPUT = args.generate_output
 PIXEL_PER_IMAGE = args.pixel_count
 TRAIN_PERCENTAGE = args.train_percentage
-EXAMPLE_COUNT = args.example_count
 
 try:
     IN, EDGE, OUT = map(float, args.pixel_ratios.split(','))
@@ -81,10 +80,11 @@ random.shuffle(image_paths)
 image_paths = image_paths[:COUNT]
 
 train_count = int(COUNT * TRAIN_PERCENTAGE)
-test_count = COUNT - train_count
+validation_count = COUNT - train_count
 
 train_images = image_paths[:train_count]
-test_images = image_paths[train_count:][:test_count]
+validation_images = image_paths[train_count:][:validation_count]
+
 def load_set(image_paths, tstr = "", sample_pixels = True, silent = False):
     X = []
     y = []
@@ -112,7 +112,7 @@ def load_set(image_paths, tstr = "", sample_pixels = True, silent = False):
     return X, y
 
 X_train, y_train = load_set(train_images, tstr="train", sample_pixels=True)
-X_test, y_test = load_set(test_images, tstr="test", sample_pixels=False)
+X_test, y_test = load_set(validation_images, tstr="test", sample_pixels=False)
 
 coefficients = []
 remaining_loss = []
@@ -153,8 +153,6 @@ if GENERATE_OUTPUT:
         result = {}
         result['lambda'] = l
         for i, coeff in enumerate(coeffs):
-            if i >= 12:
-                continue
             result[BANDS[i]] = coeff
         table.append(result)
 
@@ -181,7 +179,7 @@ if GENERATE_OUTPUT:
     plt.savefig(f"{path}/mse.png")
 
     with open(f"{path}/values.csv", "w") as file:
-        coefficients_w = [['AOT', 'B11', 'B12', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9']] + coefficients
+        coefficients_w = [["B4", "B3", "B2", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12", "AOT"]] + coefficients
         writer = csv.writer(file)
         writer.writerows(coefficients_w)
 
@@ -197,7 +195,7 @@ if GENERATE_OUTPUT:
         'seed': SEED, 
         'best_ceofficients': best_coeffcients, 
         'train_files': train_images, 
-        'test_files': test_images, 
+        'validation_files': validation_images, 
         'parameters': {
             'sigma' : SIGMA,
             'lambda_count': LAMBDA_COUNT,
@@ -221,14 +219,7 @@ if GENERATE_OUTPUT:
     target_abs = os.path.abspath(path)
     symlink_abs = os.path.abspath(symlink_path)
     os.symlink(target_abs, symlink_abs, target_is_directory=True)
-
-    for i in range(EXAMPLE_COUNT):
-        if VERBOSE:
-            print(f"\rGenerating example output {i+1}/{EXAMPLE_COUNT}", end="")
-
-        X_exemplify, _ = load_set([test_images[i]], "example", False, silent=True)
-        y_example = best_model.predict(X_exemplify)
-        output_prediction(y_example, test_images[i], OUTPUT + '/' + timestamp)
-    print("\nAll examples output")
+    joblib.dump(best_model, f'{path}/model.pkl')
+    print(path)
 
 
