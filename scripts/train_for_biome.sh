@@ -1,0 +1,1 @@
+xargs -a data/clusters/$1.txt ./lasso_on_tifs.py
