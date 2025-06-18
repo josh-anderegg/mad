@@ -1,7 +1,7 @@
-/.venv
-/data
-/rscripts
-/Input
-/outputs
+.venv
+data
+rscripts
+Input
+outputs
 __pycache__
-/old
+old
