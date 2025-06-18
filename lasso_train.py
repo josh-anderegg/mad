@@ -16,7 +16,7 @@ from datetime import datetime
 from sklearn.linear_model import Lasso
 from sklearn.metrics import mean_squared_error
 from concurrent.futures import ProcessPoolExecutor
-from tif_utils import tif_to_vec, output_prediction
+from tif_utils import tif_to_vec
 
 # In order to disable annoying convergence warnings, ugh
 from warnings import simplefilter
@@ -112,7 +112,7 @@ def load_set(image_paths, tstr = "", sample_pixels = True, silent = False):
     return X, y
 
 X_train, y_train = load_set(train_images, tstr="train", sample_pixels=True)
-X_test, y_test = load_set(validation_images, tstr="test", sample_pixels=False)
+X_validation, y_validation = load_set(validation_images, tstr="test", sample_pixels=False)
 
 coefficients = []
 remaining_loss = []
@@ -126,8 +126,8 @@ for i, l in enumerate(lambdas):
     lasso = Lasso(alpha=l)
     lasso.fit(X_train, y_train)
     coeffs = lasso.coef_
-    y_pred = lasso.predict(X_test)
-    mse = mean_squared_error(y_test, y_pred)
+    y_pred = lasso.predict(X_validation)
+    mse = mean_squared_error(y_validation, y_pred)
     loss = mse 
     remaining_loss.append(loss)
     coefficients.append(coeffs)
@@ -220,6 +220,6 @@ if GENERATE_OUTPUT:
     symlink_abs = os.path.abspath(symlink_path)
     os.symlink(target_abs, symlink_abs, target_is_directory=True)
     joblib.dump(best_model, f'{path}/model.pkl')
-    print(path)
+    print(f'{path}/model.pkl')
 
 
