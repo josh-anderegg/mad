@@ -1,1 +1,1 @@
-xargs -a data/clusters/$1.txt ./lasso_on_tifs.py -o "outputs/$1"
+xargs -a data/clusters/$1.txt ./lasso_train.py -o "outputs/$1"
