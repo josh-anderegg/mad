@@ -1,6 +1,6 @@
 import rasterio
 import numpy as np
-
+import os
 from sklearn.preprocessing import MinMaxScaler
 from scipy.ndimage import gaussian_filter
 
@@ -35,7 +35,7 @@ def pick_quality_pixels(X, IN, EDGE, PIXEL_PER_IMAGE):
     return np.concatenate([ins[:ins_nr], edges[:edges_nr], outs[:outs_nr]])
 
 def output_prediction(prediction_band, image_path, output_path):
-
+    os.makedirs(output_path, exist_ok=True)
     with rasterio.open(image_path) as src:
         existing_data = src.read()
         meta = src.meta.copy()

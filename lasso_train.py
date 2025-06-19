@@ -220,6 +220,6 @@ if GENERATE_OUTPUT:
     symlink_abs = os.path.abspath(symlink_path)
     os.symlink(target_abs, symlink_abs, target_is_directory=True)
     joblib.dump(best_model, f'{path}/model.pkl')
-    print(f'{path}/model.pkl')
+    print(f'{path}')
 
 
