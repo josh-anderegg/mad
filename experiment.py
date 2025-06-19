@@ -2,7 +2,7 @@ import random
 import os
 import subprocess
 random.seed(42)
-MAX_TRAIN_IMAGES = 800
+MAX_TRAIN_IMAGES = 2000
 MAX_TEST_IMAGES = 50
 
 TEST_PERCENTAGE = 0.1
