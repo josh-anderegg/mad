@@ -58,7 +58,7 @@ all_coords = [(x, y) for x in x_coords for y in y_coords]
 
 results = []
 with ProcessPoolExecutor() as executor:
-    for result in tqdm(executor.map(process_cell, all_coords, chunksize=10000), total=len(all_coords)):
+    for result in tqdm(executor.map(process_cell, all_coords, chunksize=100000), total=len(all_coords)):
         results.append(result)
 
 grid_cells = [cell for cell in results if cell is not None]
