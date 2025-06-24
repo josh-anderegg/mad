@@ -55,3 +55,27 @@ def output_prediction(prediction_band, image_path, output_path):
         dst.write(prediction_band, existing_data.shape[0] + 1)
         dst.set_band_description(existing_data.shape[0] + 1, "Prediction")
 
+def safe_index_calc(numerator, denominator):
+    with np.errstate(divide='ignore', invalid='ignore'):
+        index = (numerator - denominator) / (numerator + denominator)
+    if np.isnan(index).any():
+        index = np.zeros_like(index)
+    return index
+(B4, B3, B2, B5, B6, B7, B8, B8A, B9, B11, B12, AOT) = range(0, 12)
+
+def extend(X):
+    NDVI = safe_index_calc(X[:, B8], X[:, B4])
+    NDRE = safe_index_calc(X[:, B8A], X[:, B5])
+    GNDVI = safe_index_calc(X[:, B8], X[:, B3])
+    NDMI = safe_index_calc(X[:, B8], X[:, B11])
+    MSI = safe_index_calc(X[:, B11], X[:, B8])
+    NDWI = safe_index_calc(X[:, B3], X[:, B8])
+    MNDWI = safe_index_calc(X[:, B3], X[:, B11])
+    NBR = safe_index_calc(X[:, B8], X[:, B12])
+    NBR2 = safe_index_calc(X[:, B11], X[:, B12])
+    NDBI = safe_index_calc(X[:, B11], X[:, B8])
+    NDSI = safe_index_calc(X[:, B3], X[:, B11])
+    NDVI705 = safe_index_calc(X[:, B5], X[:, B4])
+    NDTI = safe_index_calc(X[:, B4], X[:, B3])
+    AMWI = safe_index_calc(X[:, B4], X[:, B2])
+    return np.column_stack((X, NDVI, NDRE, GNDVI, NDMI, MSI, NDWI, MNDWI, NBR, NBR2, NDBI, NDSI, NDVI705, NDTI, AMWI))

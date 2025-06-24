@@ -16,7 +16,7 @@ from datetime import datetime
 from sklearn.linear_model import Lasso
 from sklearn.metrics import mean_squared_error
 from concurrent.futures import ProcessPoolExecutor
-from tif_utils import tif_to_vec
+from tif_utils import tif_to_vec, extend
 
 # In order to disable annoying convergence warnings, ugh
 from warnings import simplefilter
@@ -24,7 +24,7 @@ from sklearn.exceptions import ConvergenceWarning
 simplefilter("ignore", category=ConvergenceWarning)
 
 
-BANDS = ["B4", "B3", "B2", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12", "AOT"]
+BANDS =     ["B4", "B3", "B2", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12", "AOT", "NDVI", "NDRE", "GNDVI", "NDMI", "MSI", "NDWI", "MNDWI", "NBR", "NBR2", "NDBI", "NDSI", "NDVI705", "NDTI", "AMWI"]
 
 parser = argparse.ArgumentParser()
 
@@ -40,6 +40,7 @@ parser.add_argument("-p", "--pixel-count", type=int, default=1000 , help="Maxima
 parser.add_argument("--pixel-ratios", type=str, default='0.5, 0.1, 0.4' , help="Ratio between pixels taken inside, on the border and outside of the ground truth (default: 0.5, 0.1, 0.4)")
 parser.add_argument("-s", "--sigma", type=float, default=5 , help="Sigma used to blur the ground truth. (default: 5)")
 parser.add_argument("--train-percentage", type=float, default=0.8, help="Percentage of the images that are used for the training vs. testing (default: 0.8)")
+parser.add_argument("-e", "--extend", action="store_true", default=False, help="Extends the values with Spectracl indices (default: False)")
 
 args = parser.parse_args()
 SIGMA = args.sigma 
@@ -53,6 +54,7 @@ OUTPUT = args.output
 GENERATE_OUTPUT = args.generate_output
 PIXEL_PER_IMAGE = args.pixel_count
 TRAIN_PERCENTAGE = args.train_percentage
+EXTEND = args.extend
 
 try:
     IN, EDGE, OUT = map(float, args.pixel_ratios.split(','))
@@ -85,6 +87,7 @@ validation_count = COUNT - train_count
 train_images = image_paths[:train_count]
 validation_images = image_paths[train_count:][:validation_count]
 
+
 def load_set(image_paths, tstr = "", sample_pixels = True, silent = False):
     X = []
     y = []
@@ -95,10 +98,12 @@ def load_set(image_paths, tstr = "", sample_pixels = True, silent = False):
         for i, future in enumerate(futures):
             try: 
                 t_X, t_y = future.result()
+                if EXTEND:
+                    t_X = extend(t_X)
                 X.append(t_X)
                 y.append(t_y)
                 if VERBOSE and not silent:
-                    size += t_X.nbytes + t_y.nbytes
+                    size += t_X.nbytes + t_y.nbytes # type: ignore
                     print(f"\rloaded {i+1}/{len(image_paths)} {tstr} images, {size / (1024**3):2f} GB used", end="")
             except Exception as e:
                 if VERBOSE and not silent:
@@ -220,6 +225,6 @@ if GENERATE_OUTPUT:
     symlink_abs = os.path.abspath(symlink_path)
     os.symlink(target_abs, symlink_abs, target_is_directory=True)
     joblib.dump(best_model, f'{path}/model.pkl')
-    print(f'{path}')
+    # print(f'{path}')
 
 
