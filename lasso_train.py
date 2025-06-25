@@ -56,6 +56,7 @@ PIXEL_PER_IMAGE = args.pixel_count
 TRAIN_PERCENTAGE = args.train_percentage
 EXTEND = args.extend
 
+os.makedirs(OUTPUT, exist_ok=True)
 try:
     IN, EDGE, OUT = map(float, args.pixel_ratios.split(','))
     if not abs(IN + EDGE + OUT - 1.0) < 1e-6:

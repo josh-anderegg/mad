@@ -1,6 +1,8 @@
 import os
 import shutil
 import rasterio
+# Script to cluster the images according to their respective biomes
+
 IMAGE_PATH = 'data/images/'
 CLUSTER_PATH = 'data/clusters/'
 

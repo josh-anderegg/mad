@@ -30,21 +30,41 @@ lasso = joblib.load(f'{PATH}/model.pkl')
 results = {}
 for image in IMAGES:
     X, y = tif_to_vec(image, 0, 0, 0, SIGMA, False)
+
     if EXTEND:
         X = extend(X)
+    
     y_pred = lasso.predict(X)
     output_prediction(y_pred, image, PATH + '/test_images')
-    mse = mean_squared_error(y, y_pred)
-    mae = mean_absolute_error(y, y_pred)
-    rmse = np.sqrt(mse)
-    r2 = r2_score(y, y_pred)
-    mse = mean_squared_error(y, y_pred)
+    mse_unbalanced = mean_squared_error(y, y_pred)
+    mae_unbalanced = mean_absolute_error(y, y_pred)
+    rmse_unbalanced = np.sqrt(mse_unbalanced)
+    r2_unbalanced = r2_score(y, y_pred)
+    mse_unbalanced = mean_squared_error(y, y_pred)
 
-    results['image'] = {
-        'MSE': mse,
-        'MAE': mae,
-        'RMSE': rmse,
-        'R2': r2,
+    results['unbalanced'] = {
+        'MSE': float(mse_unbalanced),
+        'MAE': float(mae_unbalanced),
+        'RMSE': float(rmse_unbalanced),
+        'R2': float(r2_unbalanced),
+    }
+
+    X, y = tif_to_vec(image, 0.5, 0.1, 10000, SIGMA, True)
+
+    if EXTEND:
+        X = extend(X)
+    
+    y_pred = lasso.predict(X)
+    mse_balanced = mean_squared_error(y, y_pred)
+    mae_balanced = mean_absolute_error(y, y_pred)
+    rmse_balanced = np.sqrt(mse_balanced)
+    r2_balanced = r2_score(y, y_pred)
+    mse_balanced = mean_squared_error(y, y_pred)
+    results['balanced'] = {
+        'MSE': float(mse_balanced),
+        'MAE': float(mae_balanced),
+        'RMSE': float(rmse_balanced),
+        'R2': float(r2_balanced),
     }
 
 with open(f'{PATH}/train.json', 'w') as f:
