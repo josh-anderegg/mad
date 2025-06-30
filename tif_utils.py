@@ -55,13 +55,12 @@ def output_prediction(prediction_band, image_path, output_path):
         dst.write(prediction_band, existing_data.shape[0] + 1)
         dst.set_band_description(existing_data.shape[0] + 1, "Prediction")
 
-def safe_index_calc(numerator, denominator):
-    with np.errstate(divide='ignore', invalid='ignore'):
-        index = (numerator - denominator) / (numerator + denominator)
-    if np.isnan(index).any():
-        index = np.zeros_like(index)
+# Use a small epsilon here to omit the case in which the divisor is 0, seems to be the normal way to handle this numeric case
+def safe_index_calc(numerator, denominator, epsilon=1e-9):
+    index = (numerator - denominator) / (numerator + denominator + epsilon)
     return index
 (B4, B3, B2, B5, B6, B7, B8, B8A, B9, B11, B12, AOT) = range(0, 12)
+BANDS = [B4, B3, B2, B5, B6, B7, B8, B8A, B9, B11, B12, AOT]
 
 def extend(X):
     NDVI = safe_index_calc(X[:, B8], X[:, B4])
@@ -79,3 +78,13 @@ def extend(X):
     NDTI = safe_index_calc(X[:, B4], X[:, B3])
     AMWI = safe_index_calc(X[:, B4], X[:, B2])
     return np.column_stack((X, NDVI, NDRE, GNDVI, NDMI, MSI, NDWI, MNDWI, NBR, NBR2, NDBI, NDSI, NDVI705, NDTI, AMWI))
+
+def super_extend(X):
+    cols = []
+    for bandi in BANDS:
+        for bandj in BANDS:
+            if bandi == bandj:
+                continue
+            cols.append(safe_index_calc(X[:, bandi], X[:, bandj]))
+
+    return np.column_stack((X, *cols))

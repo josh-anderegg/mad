@@ -9,7 +9,7 @@ import numpy as np
 
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from tif_utils import tif_to_vec, output_prediction, extend
+from tif_utils import tif_to_vec, output_prediction, extend, super_extend
 simplefilter("ignore", category=ConvergenceWarning)
 
 parser = argparse.ArgumentParser()
@@ -18,11 +18,12 @@ parser.add_argument("path", help="Path to the folder for which to perform the te
 parser.add_argument("images", nargs="+" , help="Path to tif file or files.")
 parser.add_argument("-s", "--sigma", type=float, default=5 , help="Sigma used to blur the ground truth. (default: 5)")
 parser.add_argument("-e", "--extend", action="store_true", default=False, help="Extends the values with Spectracl indices (default: False)")
+parser.add_argument("--super-extend", action="store_true", default=False, help="Extends the values with all possible Spectracl indices (default: False)")
 
 args = parser.parse_args()
 SIGMA = args.sigma
 EXTEND = args.extend
-
+SUPER_EXTEND = args.super_extend
 
 PATH = args.path
 IMAGES = args.images
@@ -33,6 +34,9 @@ for image in IMAGES:
 
     if EXTEND:
         X = extend(X)
+    
+    if SUPER_EXTEND:
+        X = super_extend(X)
     
     y_pred = lasso.predict(X)
     output_prediction(y_pred, image, PATH + '/test_images')
@@ -54,6 +58,8 @@ for image in IMAGES:
     if EXTEND:
         X = extend(X)
     
+    if SUPER_EXTEND:
+        X = super_extend(X)
     y_pred = lasso.predict(X)
     mse_balanced = mean_squared_error(y, y_pred)
     mae_balanced = mean_absolute_error(y, y_pred)
