@@ -24,6 +24,11 @@ for biome in os.listdir('data/clusters'):
     test_cmd_ext = f'./lasso_predict.py outputs/{biome_str}_extended/latest {' '.join(test_files)} -e'
     subprocess.run(test_cmd_ext, shell=True)
 
+    train_cmd_ext = f'./lasso_train.py {' '.join(model_files)} -o "outputs/{biome_str}_super_extended" -c {len(model_files)} -p 10000 -e -v'
+    subprocess.run(train_cmd_ext , shell=True)
+    test_cmd_ext = f'./lasso_predict.py outputs/{biome_str}_extended/latest {' '.join(test_files)} --super-extend'
+    subprocess.run(test_cmd_ext, shell=True)
+
     train_cmd_smp = f'./lasso_train.py {' '.join(model_files)} -o "outputs/{biome_str}_simple" -c {len(model_files)} -p 10000 -v'
     subprocess.run(train_cmd_smp , shell=True)
     test_cmd_smp = f'./lasso_predict.py outputs/{biome_str}_simple/latest {' '.join(test_files)}'

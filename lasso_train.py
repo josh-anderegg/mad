@@ -16,7 +16,7 @@ from datetime import datetime
 from sklearn.linear_model import Lasso
 from sklearn.metrics import mean_squared_error
 from concurrent.futures import ProcessPoolExecutor
-from tif_utils import tif_to_vec, extend
+from tif_utils import tif_to_vec, extend, super_extend
 
 # In order to disable annoying convergence warnings, ugh
 from warnings import simplefilter
@@ -41,6 +41,7 @@ parser.add_argument("--pixel-ratios", type=str, default='0.5, 0.1, 0.4' , help="
 parser.add_argument("-s", "--sigma", type=float, default=5 , help="Sigma used to blur the ground truth. (default: 5)")
 parser.add_argument("--train-percentage", type=float, default=0.8, help="Percentage of the images that are used for the training vs. testing (default: 0.8)")
 parser.add_argument("-e", "--extend", action="store_true", default=False, help="Extends the values with Spectracl indices (default: False)")
+parser.add_argument("--super-extend", action="store_true", default=False, help="Extends the values with all possible Spectracl indices (default: False)")
 
 args = parser.parse_args()
 SIGMA = args.sigma 
@@ -55,6 +56,7 @@ GENERATE_OUTPUT = args.generate_output
 PIXEL_PER_IMAGE = args.pixel_count
 TRAIN_PERCENTAGE = args.train_percentage
 EXTEND = args.extend
+SUPER_EXTEND = args.extend
 
 os.makedirs(OUTPUT, exist_ok=True)
 try:
@@ -101,6 +103,8 @@ def load_set(image_paths, tstr = "", sample_pixels = True, silent = False):
                 t_X, t_y = future.result()
                 if EXTEND:
                     t_X = extend(t_X)
+                if SUPER_EXTEND:
+                    t_X = super_extend(t_X)
                 X.append(t_X)
                 y.append(t_y)
                 if VERBOSE and not silent:
