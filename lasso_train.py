@@ -24,7 +24,6 @@ from sklearn.exceptions import ConvergenceWarning
 simplefilter("ignore", category=ConvergenceWarning)
 
 
-BANDS =     ["B4", "B3", "B2", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12", "AOT", "NDVI", "NDRE", "GNDVI", "NDMI", "MSI", "NDWI", "MNDWI", "NBR", "NBR2", "NDBI", "NDSI", "NDVI705", "NDTI", "AMWI"]
 
 parser = argparse.ArgumentParser()
 
@@ -56,7 +55,7 @@ GENERATE_OUTPUT = args.generate_output
 PIXEL_PER_IMAGE = args.pixel_count
 TRAIN_PERCENTAGE = args.train_percentage
 EXTEND = args.extend
-SUPER_EXTEND = args.extend
+SUPER_EXTEND = args.super_extend
 
 os.makedirs(OUTPUT, exist_ok=True)
 try:
@@ -74,6 +73,18 @@ else:
 
 if VERBOSE:
     print(f'used seed: {SEED}')
+
+BANDS = ["B4", "B3", "B2", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12", "AOT"]
+if EXTEND:
+    BANDS = ["B4", "B3", "B2", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12", "AOT", "NDVI", "NDRE", "GNDVI", "NDMI", "MSI", "NDWI", "MNDWI", "NBR", "NBR2", "NDBI", "NDSI", "NDVI705", "NDTI", "AMWI"]
+
+if SUPER_EXTEND:
+    new_bands = BANDS.copy()
+    for bandi in BANDS:
+        for bandj in BANDS:
+            if bandi != bandj:
+                new_bands.append(f'{bandi}-{bandj}')
+    BANDS = new_bands
 
 random.seed(SEED)
 
@@ -189,7 +200,7 @@ if GENERATE_OUTPUT:
     plt.savefig(f"{path}/mse.png")
 
     with open(f"{path}/values.csv", "w") as file:
-        coefficients_w = [["B4", "B3", "B2", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12", "AOT"]] + coefficients
+        coefficients_w = [BANDS] + coefficients
         writer = csv.writer(file)
         writer.writerows(coefficients_w)
 
@@ -230,6 +241,5 @@ if GENERATE_OUTPUT:
     symlink_abs = os.path.abspath(symlink_path)
     os.symlink(target_abs, symlink_abs, target_is_directory=True)
     joblib.dump(best_model, f'{path}/model.pkl')
-    # print(f'{path}')
 
 

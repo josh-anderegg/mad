@@ -20,19 +20,22 @@ for biome in os.listdir('data/clusters'):
     test_files = files[:test_count][:MAX_TEST_IMAGES]
     model_files = files[test_count:][:MAX_TRAIN_IMAGES]
 
-    train_cmd_ext = f'./lasso_train.py {' '.join(model_files)} -o "outputs/{biome_str}_extended" -c {len(model_files)} -p {PIXEL_COUNT} -e -v'
+    print("Extended run")
+    train_cmd_ext = f'./lasso_train.py {" ".join(model_files)} -o "outputs/{biome_str}/extended" -c {len(model_files)} -p {PIXEL_COUNT} -e -v'
     subprocess.run(train_cmd_ext , shell=True)
-    test_cmd_ext = f'./lasso_predict.py outputs/{biome_str}_extended/latest {' '.join(test_files)} -e'
+    test_cmd_ext = f'./lasso_predict.py outputs/{biome_str}/extended/latest {" ".join(test_files)} -e'
     subprocess.run(test_cmd_ext, shell=True)
 
-    train_cmd_ext = f'./lasso_train.py {' '.join(model_files)} -o "outputs/{biome_str}_super_extended" -c {len(model_files)} -p {PIXEL_COUNT} --super-extend -v'
+    print("Super extended run")
+    train_cmd_ext = f'./lasso_train.py {" ".join(model_files)} -o "outputs/{biome_str}/super_extended" -c {len(model_files)} -p {PIXEL_COUNT} --super-extend -v'
     subprocess.run(train_cmd_ext , shell=True)
-    test_cmd_ext = f'./lasso_predict.py outputs/{biome_str}_extended/latest {' '.join(test_files)} --super-extend'
+    test_cmd_ext = f'./lasso_predict.py outputs/{biome_str}/super_extended/latest {" ".join(test_files)} --super-extend'
     subprocess.run(test_cmd_ext, shell=True)
 
-    train_cmd_smp = f'./lasso_train.py {' '.join(model_files)} -o "outputs/{biome_str}_simple" -c {len(model_files)} -p {PIXEL_COUNT} -v'
+    print("Simple run")
+    train_cmd_smp = f'./lasso_train.py {" ".join(model_files)} -o "outputs/{biome_str}/simple" -c {len(model_files)} -p {PIXEL_COUNT} -v'
     subprocess.run(train_cmd_smp , shell=True)
-    test_cmd_smp = f'./lasso_predict.py outputs/{biome_str}_simple/latest {' '.join(test_files)}'
+    test_cmd_smp = f'./lasso_predict.py outputs/{biome_str}/simple/latest {" ".join(test_files)}'
     subprocess.run(test_cmd_smp, shell=True)
 
         
