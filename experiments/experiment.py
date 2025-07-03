@@ -1,7 +1,7 @@
 import random
 import os
 import subprocess
-MAX_TRAIN_IMAGES = 100
+MAX_TRAIN_IMAGES = 600 
 MAX_TEST_IMAGES = 10
 TEST_PERCENTAGE = 0.01
 PIXEL_COUNT = 5000

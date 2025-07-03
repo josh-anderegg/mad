@@ -23,8 +23,6 @@ from warnings import simplefilter
 from sklearn.exceptions import ConvergenceWarning
 simplefilter("ignore", category=ConvergenceWarning)
 
-
-
 parser = argparse.ArgumentParser()
 
 parser.add_argument("images", nargs="+" , help="Path to tif file or files")
@@ -86,6 +84,8 @@ if SUPER_EXTEND:
                 new_bands.append(f'{bandi}-{bandj}')
     BANDS = new_bands
 
+print(BANDS)
+exit()
 random.seed(SEED)
 
 image_paths = []
@@ -120,6 +120,8 @@ def load_set(image_paths, tstr = "", sample_pixels = True, silent = False):
                 y.append(t_y)
                 if VERBOSE and not silent:
                     size += t_X.nbytes + t_y.nbytes # type: ignore
+                    if (size/(1024**3)) > 10:
+                        break
                     print(f"\rloaded {i+1}/{len(image_paths)} {tstr} images, {size / (1024**3):2f} GB used", end="")
             except Exception as e:
                 if VERBOSE and not silent:
