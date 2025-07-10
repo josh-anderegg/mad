@@ -1,19 +1,21 @@
 #!python
 import cv2
 import argparse
-import os
 
+# Given a
 parser = argparse.ArgumentParser()
 parser.add_argument('image_path', help='Path to the image to visualize.')
+parser.add_argument('description_path', help='Path to the the class description.')
 args = parser.parse_args()
-PATH = args.image_path
-txt_path = PATH.replace('.jpg', '.txt')
+IMG_PATH = args.image_path
+TXT_PATH = args.image_path
+
 # Load image
-image = cv2.imread(PATH)
+image = cv2.imread(IMG_PATH)
 height, width, _ = image.shape
 
 # Read YOLO label
-with open(txt_path, 'r') as f:
+with open(TXT_PATH, 'r') as f:
     lines = f.readlines()
 
 for line in lines:
