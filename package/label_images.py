@@ -1,4 +1,5 @@
 from concurrent.futures import ProcessPoolExecutor
+from pathlib import Path
 import geopandas as gpd
 import rasterio
 from rasterio.features import geometry_mask
@@ -6,15 +7,16 @@ from shapely.geometry import box
 import os
 
 from tqdm import tqdm
+BASE_DIR = Path(__file__).resolve().parent.parent
+gdf = gpd.read_file(BASE_DIR / "data/maus/global_mining_polygons_v2.gpkg")
 
-gdf = gpd.read_file("/home/cynik/Documents/mad/data/maus/global_mining_polygons_v2.gpkg")
-
-DIR = '/home/cynik/Documents/mad/data/images'
+# TODO Maybe put this as an argument?
+DIR = BASE_DIR / 'data/images'
 def label(name):
     name = name.replace('.tif', '')
 
     tif_file = f'{DIR}/{name}.tif'
-    lbl_file = f'/home/cynik/Documents/mad/data/labels/{name}.txt'
+    lbl_file = BASE_DIR / f'data/labels/{name}.txt'
     results = []
 
     with rasterio.open(tif_file) as src:

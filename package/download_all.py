@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from pathlib import Path
 import ee
 import pandas as pd
 import requests
@@ -8,16 +9,21 @@ import uuid
 import os
 import numpy as np
 import json
-
+import argparse
 from shapely.geometry import box
 from rasterio.features import rasterize
 from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
 
+parser = argparse.ArgumentParser()
+parser.add_argument('grid_path', help='Path to the grid to be downloaded.')
+args = parser.parse_args()
+GRID_PATH = args.grid_path
+BASE_DIR = Path(__file__).resolve().parent.parent
 ee.Authenticate()
 ee.Initialize(project='siam-josh')  
 
-boxes = pd.read_csv('data/grids/grid_5500_epsg3857.csv')
+boxes = pd.read_csv(GRID_PATH)
 
 CHANNELS = ["B4", "B3", "B2", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12", "AOT"]
 
@@ -37,8 +43,8 @@ WORLD_COVER_MAP = {
 
 MAX_RETRIES = 1000
 
-maus = gpd.read_file('data/maus/global_mining_polygons_v2.gpkg').to_crs(epsg=4326)
-regions = gpd.read_file("data/Ecoregions2017/Ecoregions2017.shp").to_crs(crs=4326)
+maus = gpd.read_file(BASE_DIR / 'data/maus/global_mining_polygons_v2.gpkg').to_crs(epsg=4326)
+regions = gpd.read_file(BASE_DIR / "data/Ecoregions2017/Ecoregions2017.shp").to_crs(crs=4326)
 
 def download_to(url, path):
     tries = 0
@@ -71,10 +77,10 @@ def process_tile(tile):
     gee_box = ee.geometry.Geometry.BBox(tile['min_lon'], tile['min_lat'], tile['max_lon'], tile['max_lat'])
     mid_lon = tile['max_lon'] + tile['min_lon'] / 2 
     mid_lat = tile['max_lat'] + tile['min_lat'] / 2
-    img_string = f'data/images/{mid_lon:.6f}_{mid_lat:.6f}.tif'
+    img_string = BASE_DIR / f'data/images/SENTINEL2_{mid_lon:.6f}_{mid_lat:.6f}.tif'
     id_string = uuid.uuid4().hex
-    temp_cov = f'data/temp/coverage_{id_string}.tif'
-    temp_sat = f'data/temp/satellite_{id_string}.tif'
+    temp_cov = BASE_DIR / f'data/temp/coverage_{id_string}.tif'
+    temp_sat = BASE_DIR / f'data/temp/satellite_{id_string}.tif'
 
     image = ee.imagecollection.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")\
         .filterDate('2019-01-01', '2020-01-01') \
