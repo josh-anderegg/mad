@@ -16,7 +16,7 @@ from datetime import datetime
 from sklearn.linear_model import Lasso
 from sklearn.metrics import mean_squared_error
 from concurrent.futures import ProcessPoolExecutor
-from tif_utils import tif_to_vec, extend, super_extend
+from package.tif_utils import tif_to_vec, extend, super_extend
 
 # In order to disable annoying convergence warnings, ugh
 from warnings import simplefilter

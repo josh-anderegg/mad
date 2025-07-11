@@ -9,7 +9,7 @@ import numpy as np
 
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from tif_utils import tif_to_vec, output_prediction, extend, super_extend
+from package.tif_utils import tif_to_vec, output_prediction, extend, super_extend
 simplefilter("ignore", category=ConvergenceWarning)
 
 parser = argparse.ArgumentParser()
