@@ -14,7 +14,17 @@
 ├── package (programs realted to final product)
 └── scripts (helper scripts for organising files or additional downloading)
 ```
-## Installation
+## Execution dependency
+```
+package
+├── create_grid.py
+├── download_all.py
+├── label_images.py
+├── lasso_predict.py
+├── lasso_train.py
+└── tif_utils.py
+```
+# Installation
 
 ## Package functionality
 
