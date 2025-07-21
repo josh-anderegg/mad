@@ -2,24 +2,19 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 import geopandas as gpd
 import rasterio
-from rasterio.features import geometry_mask
 from shapely.geometry import box
 import os
-
 from tqdm import tqdm
-BASE_DIR = Path(__file__).resolve().parent.parent
-gdf = gpd.read_file(BASE_DIR / "data/maus/global_mining_polygons_v2.gpkg")
+import argparse
 
-# TODO Maybe put this as an argument?
-DIR = BASE_DIR / 'data/images'
-def label(name):
-    name = name.replace('.tif', '')
 
-    tif_file = f'{DIR}/{name}.tif'
-    lbl_file = BASE_DIR / f'data/labels/{name}.txt'
+def label(file_path, output_path, maus_df):
+    name = file_path.replace('.tif', '')
+
+    lbl_file = f'{output_path}/{name}.tif'
+
     results = []
-
-    with rasterio.open(tif_file) as src:
+    with rasterio.open(file_path) as src:
         raster_bounds = box(*src.bounds)
         raster_crs = src.crs
 
@@ -28,14 +23,14 @@ def label(name):
         image_height = image_maxy - image_miny
 
         # Reproject only once
-        gdf_proj = gdf.to_crs(raster_crs)
+        gdf_proj = maus_df.to_crs(raster_crs)
 
         # Build spatial index once
         sindex = gdf_proj.sindex
 
         # Use sindex to get relevant geometries
         possible_matches_index = list(sindex.intersection(raster_bounds.bounds))
-        possible_matches = gdf_proj.iloc[possible_matches_index] # type: ignore
+        possible_matches = gdf_proj.iloc[possible_matches_index]  # type: ignore
 
         for _, row in possible_matches.iterrows():
             poly = row.geometry
@@ -61,6 +56,19 @@ def label(name):
         for cx, cy, lx, ly in results:
             dst.write(f'0 {cx} {cy} {lx} {ly}\n')
 
-with ProcessPoolExecutor(max_workers=16) as executor:
-    for result in tqdm(executor.map(label, os.listdir(DIR)), total=len(os.listdir(DIR))):
-        pass
+
+if __name__ == "__main__":
+    from itertools import repeat
+    BASE_DIR = Path(__file__).resolve().parent.parent
+    parser = argparse.ArgumentParser()
+    parser.add_argument("images_path", help="Path to the .tif images")
+    parser.add_argument("label_path", help="Path to the output directory")
+    parser.add_argument("--maus", "-m", default=BASE_DIR / "data/maus/global_mining_polygons_v2.gpkg", help="Path to the .tif images")
+    args = parser.parse_args()
+    IMAGE_PATH = args.image_path
+    LABEL_PATH = args.label_path
+    MAUS_PATH = args.maul
+    maus_df = gpd.read_file(MAUS_PATH)
+    with ProcessPoolExecutor(max_workers=16) as executor:
+        for result in tqdm(executor.map(label, os.listdir(IMAGE_PATH), repeat(LABEL_PATH), repeat(maus_df)), total=len(os.listdir(IMAGE_PATH))):
+            pass
