@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 import numpy as np
 import argparse
-import glob 
+import glob
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import csv 
+import csv
 import random
 import string
-import json 
+import json
 import os
 import joblib
 
@@ -25,23 +25,23 @@ simplefilter("ignore", category=ConvergenceWarning)
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("images", nargs="+" , help="Path to tif file or files")
+parser.add_argument("images", nargs="+", help="Path to tif file or files")
 parser.add_argument("output", type=str, help="Path the output directory for the graphs")
 parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose mode")
 parser.add_argument("-l", "--lambda-count", type=int, default=25, help="Amount of Lambdas iterated over (default: 10)")
 parser.add_argument("-m", "--minimal-lambda", type=int, default=-4, help="Minimal lambda used (10^-m) (default: -4)")
 parser.add_argument("-g", "--generate-output", default=True, action="store_false", help="Set if you want the script to create output")
 parser.add_argument("-c", "--count", type=int, default=10, help="Set the amount of images that should be used (default: 10)")
-parser.add_argument("-r", "--random-seed", type=str, default=None , help="Random string used for all the randomization done.")
-parser.add_argument("-p", "--pixel-count", type=int, default=1000 , help="Maximal pixel count per image that is used to perform the lasso (default: 1000)")
-parser.add_argument("--pixel-ratios", type=str, default='0.5, 0.1, 0.4' , help="Ratio between pixels taken inside, on the border and outside of the ground truth (default: 0.5, 0.1, 0.4)")
-parser.add_argument("-s", "--sigma", type=float, default=5 , help="Sigma used to blur the ground truth. (default: 5)")
+parser.add_argument("-r", "--random-seed", type=str, default=None, help="Random string used for all the randomization done.")
+parser.add_argument("-p", "--pixel-count", type=int, default=1000, help="Maximal pixel count per image that is used to perform the lasso (default: 1000)")
+parser.add_argument("--pixel-ratios", type=str, default='0.5, 0.1, 0.4', help="Ratio between pixels taken inside, on the border and outside of the ground truth (default: 0.5, 0.1, 0.4)")
+parser.add_argument("-s", "--sigma", type=float, default=5, help="Sigma used to blur the ground truth. (default: 5)")
 parser.add_argument("--train-percentage", type=float, default=0.8, help="Percentage of the images that are used for the training vs. testing (default: 0.8)")
 parser.add_argument("-e", "--extend", action="store_true", default=False, help="Extends the values with Spectracl indices (default: False)")
 parser.add_argument("--super-extend", action="store_true", default=False, help="Extends the values with all possible Spectracl indices (default: False)")
 
 args = parser.parse_args()
-SIGMA = args.sigma 
+SIGMA = args.sigma
 VERBOSE = args.verbose
 LAMBDA_COUNT = args.lambda_count
 MINIMAL_LAMBDA = args.minimal_lambda
@@ -60,11 +60,11 @@ try:
     IN, EDGE, OUT = map(float, args.pixel_ratios.split(','))
     if not abs(IN + EDGE + OUT - 1.0) < 1e-6:
         raise ValueError("Split ratios must sum to 1.0")
-except:
+except Exception:
     raise ValueError(f"Could not parse in split values: {args.pixel_ratios}, should be of the form IN, EDGE, OUT. All of them being floats.")
 
 
-if args.random_seed == None:
+if args.random_seed is None:
     SEED = ''.join(random.choices(RANDOM_SYMBOLS, k=32))
 else:
     SEED = args.random_seed
@@ -102,7 +102,7 @@ train_images = image_paths[:train_count]
 validation_images = image_paths[train_count:][:validation_count]
 
 
-def load_set(image_paths, tstr = "", sample_pixels = True, silent = False):
+def load_set(image_paths, tstr="", sample_pixels=True, silent=False):
     X = []
     y = []
 
@@ -110,7 +110,7 @@ def load_set(image_paths, tstr = "", sample_pixels = True, silent = False):
     with ProcessPoolExecutor() as executor:
         futures = {executor.submit(tif_to_vec, path, IN, EDGE, PIXEL_PER_IMAGE, SIGMA, sample_pixels): path for path in image_paths}
         for i, future in enumerate(futures):
-            try: 
+            try:
                 t_X, t_y = future.result()
                 if EXTEND:
                     t_X = extend(t_X)
@@ -119,10 +119,10 @@ def load_set(image_paths, tstr = "", sample_pixels = True, silent = False):
                 X.append(t_X)
                 y.append(t_y)
                 if VERBOSE and not silent:
-                    size += t_X.nbytes + t_y.nbytes # type: ignore
-                    if (size/(1024**3)) > 10:
+                    size += t_X.nbytes + t_y.nbytes  # type: ignore
+                    if (size / (1024**3)) > 10:
                         break
-                    print(f"\rloaded {i+1}/{len(image_paths)} {tstr} images, {size / (1024**3):2f} GB used", end="")
+                    print(f"\rloaded {i + 1}/{len(image_paths)} {tstr} images, {size / (1024**3):2f} GB used", end="")
             except Exception as e:
                 if VERBOSE and not silent:
                     print(f"Concurrency error happened, skipped an image \n{e}")
@@ -133,6 +133,7 @@ def load_set(image_paths, tstr = "", sample_pixels = True, silent = False):
     X = np.concatenate(X)
     y = np.concatenate(y)
     return X, y
+
 
 X_train, y_train = load_set(train_images, tstr="train", sample_pixels=True)
 X_validation, y_validation = load_set(validation_images, tstr="test", sample_pixels=False)
@@ -145,13 +146,13 @@ best_loss = 1 << 128
 
 for i, l in enumerate(lambdas):
     if VERBOSE:
-        print(f"\rPerforming Lasso for Lambda {i+1}/{len(lambdas)} done", end="")
+        print(f"\rPerforming Lasso for Lambda {i + 1}/{len(lambdas)} done", end="")
     lasso = Lasso(alpha=l)
     lasso.fit(X_train, y_train)
     coeffs = lasso.coef_
     y_pred = lasso.predict(X_validation)
     mse = mean_squared_error(y_validation, y_pred)
-    loss = mse 
+    loss = mse
     remaining_loss.append(loss)
     coefficients.append(coeffs)
     if loss < best_loss:
@@ -168,7 +169,6 @@ if GENERATE_OUTPUT:
     path = f'{OUTPUT}/{timestamp}'
     os.makedirs(path)
 
-    
     combined = zip(lambdas, coefficients)
     table = []
 
@@ -185,7 +185,7 @@ if GENERATE_OUTPUT:
     # Plot the change in coefficients
     plt.figure(figsize=(10, 6))
     sns.relplot(data=df_long, kind='line', x='lambda', y='magnitude', hue='coefficient', palette="Paired")
-    plt.xscale("log") 
+    plt.xscale("log")
     plt.title("Lasso Coefficients for a Lambda")
     plt.xlabel("Lambda")
     plt.ylabel("Coefficient Value")
@@ -215,12 +215,12 @@ if GENERATE_OUTPUT:
             break
 
     meta_collection = {
-        'seed': SEED, 
-        'best_ceofficients': best_coeffcients, 
-        'train_files': train_images, 
-        'validation_files': validation_images, 
+        'seed': SEED,
+        'best_ceofficients': best_coeffcients,
+        'train_files': train_images,
+        'validation_files': validation_images,
         'parameters': {
-            'sigma' : SIGMA,
+            'sigma': SIGMA,
             'lambda_count': LAMBDA_COUNT,
             'minimal_lambda': MINIMAL_LAMBDA,
             'lambdas': lambdas,
@@ -234,14 +234,11 @@ if GENERATE_OUTPUT:
 
     with open(f'{path}/meta.json', 'w') as file:
         json.dump(meta_collection, file, indent=4)
-    
     symlink_path = f'{OUTPUT}/latest'
     if os.path.exists(symlink_path) or os.path.islink(symlink_path):
         os.remove(symlink_path)
-    
+
     target_abs = os.path.abspath(path)
     symlink_abs = os.path.abspath(symlink_path)
     os.symlink(target_abs, symlink_abs, target_is_directory=True)
     joblib.dump(best_model, f'{path}/model.pkl')
-
-
