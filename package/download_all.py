@@ -16,16 +16,6 @@ from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
 from datetime import datetime
 
-parser = argparse.ArgumentParser()
-parser.add_argument("grid_path", help="Path to the grid to be downloaded.")
-args = parser.parse_args()
-GRID_PATH = args.grid_path
-BASE_DIR = Path(__file__).resolve().parent.parent
-ee.Authenticate()
-ee.Initialize(project="siam-josh")
-
-boxes = pd.read_csv(GRID_PATH)
-
 CHANNELS = [
     "TCI_R",
     "TCI_G",
@@ -59,20 +49,25 @@ WORLD_COVER_MAP = {
 }
 
 
-maus = gpd.read_file(BASE_DIR / "data/maus/global_mining_polygons_v2.gpkg").to_crs(
-    epsg=4326
-)
-regions = gpd.read_file(BASE_DIR / "data/Ecoregions2017/Ecoregions2017.shp").to_crs(
-    crs=3857
-)
+def download_all_parallel(DOWNLOAD_DIR, GRID_PATH, MAUS_PATH, ECOREGION_PATH, MAX_RETRIES):
+    from itertools import repeat
+    boxes = pd.read_csv(GRID_PATH)
 
-MAX_RETRIES = 1000
+    maus = gpd.read_file(MAUS_PATH).to_crs(epsg=4326)
+    regions = gpd.read_file(ECOREGION_PATH).to_crs(crs=3857)
+
+    tiles = [tile for _, tile in boxes.iterrows()]
+
+    results = []
+    with ProcessPoolExecutor(max_workers=8) as executor:
+        for result in tqdm(executor.map(process_tile, tiles, repeat(DOWNLOAD_DIR), repeat(maus), repeat(regions), repeat(MAX_RETRIES)), total=len(tiles)):
+            results.append(result)
 
 
-def download_to(url, path):
+def download_to(url, path, max_retries):
     tries = 0
     response = None
-    while tries < MAX_RETRIES:
+    while tries < max_retries:
         try:
             response = requests.get(url)
             with open(path, "wb") as f:
@@ -83,7 +78,7 @@ def download_to(url, path):
     return False
 
 
-def get_biome(box):
+def get_biome(box, regions):
     intersecting = regions[regions.geometry.intersects(box)]
     if intersecting.empty:
         return "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN"
@@ -102,17 +97,29 @@ def get_biome(box):
     )
 
 
-def process_tile(tile):
+def process_tile(tile, download_dir, maus, regions, max_retries):
     try:
-        gee_box = ee.geometry.Geometry.BBox(
-            tile["min_lon"], tile["min_lat"], tile["max_lon"], tile["max_lat"]
-        )
         mid_lon = tile["max_lon"] + tile["min_lon"] / 2
         mid_lat = tile["max_lat"] + tile["min_lat"] / 2
 
         # Use hash to make reproducible
         id_string = hashlib.sha256(f"{mid_lon}/{mid_lat}".encode()).hexdigest()
+        # Early stopping condition if already downloaded (NOTE: does not work if less that 5 images can be downloaded)
+        if all([os.path.exists(f'{download_dir}/S2_{id_string}_{j}.tif') for j in range(5)]):
+            with open(BASE_DIR / 'output.txt', 'a') as f:
+                f.write("Skipped one!\n")
+            return
+
+        gee_box = ee.geometry.Geometry.BBox(
+            tile["min_lon"], tile["min_lat"], tile["max_lon"], tile["max_lat"]
+        )
+
         temp_cov = BASE_DIR / f"data/temp/coverage_{id_string}.tif"
+        coverage_image = (
+            ee.imagecollection.ImageCollection("ESA/WorldCover/v100")
+            .filterBounds(gee_box)
+            .first()
+        )
 
         images = (
             ee.imagecollection.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
@@ -125,16 +132,10 @@ def process_tile(tile):
             .toList(5)
         )
 
-        coverage_image = (
-            ee.imagecollection.ImageCollection("ESA/WorldCover/v100")
-            .filterBounds(gee_box)
-            .first()
-        )
-
         params = {"scale": 10, "region": gee_box, "format": "GeoTIFF"}
 
         esa_url = coverage_image.getDownloadURL(params)
-        success_cov = download_to(esa_url, temp_cov)
+        success_cov = download_to(esa_url, temp_cov, max_retries)
         if not success_cov:
             print("Failed to download coverage image")
 
@@ -148,7 +149,7 @@ def process_tile(tile):
                 world_cover_histogram[label] = count
 
         for i in range(images.size().getInfo()):
-            img_string = f"/run/media/cynik/External/images/S2_{id_string}_{i}.tif"
+            img_string = f"{download_dir}/S2_{id_string}_{i}.tif"
             if os.path.exists(img_string):
                 continue
 
@@ -225,8 +226,23 @@ def process_tile(tile):
         pass
 
 
-tiles = [tile for _, tile in boxes.iterrows()]
-results = []
-with ProcessPoolExecutor(max_workers=8) as executor:
-    for result in tqdm(executor.map(process_tile, tiles), total=len(tiles)):
-        results.append(result)
+if __name__ == "__main__":
+    BASE_DIR = Path(__file__).resolve().parent.parent
+    parser = argparse.ArgumentParser()
+    parser.add_argument("grid_path", help="Path to the grid to be downloaded.")
+    parser.add_argument("download_dir", help="Path to the download directory")
+    parser.add_argument("--maus", "-m", default=BASE_DIR / "data/maus/global_mining_polygons_v2.gpkg", help="Path to the maus .gpkg")
+    parser.add_argument("--ecoregion", "-e", default=BASE_DIR / "data/Ecoregions2017/Ecoregions2017.shp", help="Path to the maus .gpkg")
+    args = parser.parse_args()
+
+    DOWNLOAD_DIR = args.download_dir
+    GRID_PATH = args.grid_path
+    MAUS_PATH = args.maus
+    ECOREGION_PATH = args.ecoregion
+    MAX_RETRIES = 1000
+
+    # GEE authentication
+    ee.Authenticate()
+    ee.Initialize(project="siam-josh")
+
+    download_all_parallel(DOWNLOAD_DIR, GRID_PATH, MAUS_PATH, ECOREGION_PATH, MAX_RETRIES)
