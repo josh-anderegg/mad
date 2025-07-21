@@ -12,7 +12,7 @@ import argparse
 def label(file_path, output_path, maus_df):
     name = file_path.split('/')[-1].replace('.tif', '')
 
-    lbl_file = f'{output_path}/{name}.tif'
+    lbl_file = f'{output_path}/{name}.txt'
 
     results = []
     with rasterio.open(file_path) as src:
@@ -58,8 +58,15 @@ def label(file_path, output_path, maus_df):
             dst.write(f'0 {cx} {cy} {lx} {ly}\n')
 
 
-if __name__ == "__main__":
+def label_all(IMAGE_PATH, LABEL_PATH, MAUS_PATH):
     from itertools import repeat
+    maus_df = gpd.read_file(MAUS_PATH)
+    with ProcessPoolExecutor(max_workers=16) as executor:
+        for result in tqdm(executor.map(label, [f"{IMAGE_PATH}/{image}" for image in os.listdir(IMAGE_PATH)], repeat(LABEL_PATH), repeat(maus_df)), total=len(os.listdir(IMAGE_PATH))):
+            pass
+
+
+if __name__ == "__main__":
     BASE_DIR = Path(__file__).resolve().parent.parent
     parser = argparse.ArgumentParser()
     parser.add_argument("images_path", help="Path to the .tif images")
@@ -69,7 +76,5 @@ if __name__ == "__main__":
     IMAGE_PATH = args.images_path
     LABEL_PATH = args.label_path
     MAUS_PATH = args.maus
-    maus_df = gpd.read_file(MAUS_PATH)
-    with ProcessPoolExecutor(max_workers=16) as executor:
-        for result in tqdm(executor.map(label, [f"{IMAGE_PATH}/{image}" for image in os.listdir(IMAGE_PATH)], repeat(LABEL_PATH), repeat(maus_df)), total=len(os.listdir(IMAGE_PATH))):
-            pass
+    os.makedirs(LABEL_PATH)
+    label_all(IMAGE_PATH, LABEL_PATH, MAUS_PATH)
