@@ -76,5 +76,5 @@ if __name__ == "__main__":
     IMAGE_PATH = args.images_path
     LABEL_PATH = args.label_path
     MAUS_PATH = args.maus
-    os.makedirs(LABEL_PATH)
+    os.makedirs(LABEL_PATH, exist_ok=True)
     label_all(IMAGE_PATH, LABEL_PATH, MAUS_PATH)
