@@ -1,3 +1,4 @@
+#!/bin/python3
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 import geopandas as gpd
@@ -9,7 +10,7 @@ import argparse
 
 
 def label(file_path, output_path, maus_df):
-    name = file_path.replace('.tif', '')
+    name = file_path.split('/')[-1].replace('.tif', '')
 
     lbl_file = f'{output_path}/{name}.tif'
 
@@ -65,10 +66,10 @@ if __name__ == "__main__":
     parser.add_argument("label_path", help="Path to the output directory")
     parser.add_argument("--maus", "-m", default=BASE_DIR / "data/maus/global_mining_polygons_v2.gpkg", help="Path to the .tif images")
     args = parser.parse_args()
-    IMAGE_PATH = args.image_path
+    IMAGE_PATH = args.images_path
     LABEL_PATH = args.label_path
-    MAUS_PATH = args.maul
+    MAUS_PATH = args.maus
     maus_df = gpd.read_file(MAUS_PATH)
     with ProcessPoolExecutor(max_workers=16) as executor:
-        for result in tqdm(executor.map(label, os.listdir(IMAGE_PATH), repeat(LABEL_PATH), repeat(maus_df)), total=len(os.listdir(IMAGE_PATH))):
+        for result in tqdm(executor.map(label, [f"{IMAGE_PATH}/{image}" for image in os.listdir(IMAGE_PATH)], repeat(LABEL_PATH), repeat(maus_df)), total=len(os.listdir(IMAGE_PATH))):
             pass
