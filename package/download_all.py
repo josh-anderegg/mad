@@ -10,9 +10,9 @@ import numpy as np
 import json
 import argparse
 import hashlib
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from shapely.geometry import box
 from rasterio.features import rasterize
-from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
 from datetime import datetime
 
@@ -48,19 +48,32 @@ WORLD_COVER_MAP = {
     100: "Moss and lichen",
 }
 
+_maus, _regions = None, None
+
+
+def load_data(maus_path, regions_path):
+    global _maus, _regions
+    if _maus is None:
+        _maus = gpd.read_file(maus_path).to_crs(epsg=4326)
+    if _regions is None:
+        _regions = gpd.read_file(regions_path).to_crs(epsg=3857)
+    return _maus, _regions
+
 
 def download_all_parallel(DOWNLOAD_DIR, GRID_PATH, MAUS_PATH, ECOREGION_PATH, MAX_RETRIES):
-    from itertools import repeat
     boxes = pd.read_csv(GRID_PATH)
-
-    maus = gpd.read_file(MAUS_PATH).to_crs(epsg=4326)
-    regions = gpd.read_file(ECOREGION_PATH).to_crs(crs=3857)
 
     tiles = [tile for _, tile in boxes.iterrows()]
 
     results = []
     with ProcessPoolExecutor(max_workers=8) as executor:
-        for result in tqdm(executor.map(process_tile, tiles, repeat(DOWNLOAD_DIR), repeat(maus), repeat(regions), repeat(MAX_RETRIES)), total=len(tiles)):
+        futures = [
+            executor.submit(process_tile, tile, DOWNLOAD_DIR, MAUS_PATH, ECOREGION_PATH, MAX_RETRIES)
+            for tile in tiles
+        ]
+
+        for future in tqdm(as_completed(futures), total=len(futures)):
+            result = future.result()
             results.append(result)
 
 
@@ -97,7 +110,7 @@ def get_biome(box, regions):
     )
 
 
-def process_tile(tile, download_dir, maus, regions, max_retries):
+def process_tile(tile, download_dir, MAUS_PATH, ECOREGION_PATH, max_retries):
     try:
         mid_lon = tile["max_lon"] + tile["min_lon"] / 2
         mid_lat = tile["max_lat"] + tile["min_lat"] / 2
@@ -109,6 +122,9 @@ def process_tile(tile, download_dir, maus, regions, max_retries):
             with open(BASE_DIR / 'output.txt', 'a') as f:
                 f.write("Skipped one!\n")
             return
+        maus, regions = load_data(MAUS_PATH, ECOREGION_PATH)
+        # maus = gpd.read_file(MAUS_PATH).to_crs(epsg=4326)
+        # regions = gpd.read_file(ECOREGION_PATH).to_crs(crs=3857)
 
         gee_box = ee.geometry.Geometry.BBox(
             tile["min_lon"], tile["min_lat"], tile["max_lon"], tile["max_lat"]
@@ -156,7 +172,7 @@ def process_tile(tile, download_dir, maus, regions, max_retries):
             temp_sat = BASE_DIR / f"data/temp/satellite_{id_string}_{i}.tif"
             image = ee.image.Image(images.get(i)).reproject(crs="EPSG:3857", scale=10)
             url = image.getDownloadURL(params)
-            success_sat = download_to(url, temp_sat)
+            success_sat = download_to(url, temp_sat, max_retries)
 
             unix_date = image.date().getInfo()["value"]  # type: ignore
             date = str(datetime.fromtimestamp(unix_date / 1000))
@@ -174,7 +190,7 @@ def process_tile(tile, download_dir, maus, regions, max_retries):
             bbox_gdf = gpd.GeoDataFrame(geometry=[box(*bounds)], crs=crs)
             maus_proj = maus.to_crs(crs)
             bbox_gdf_proj = bbox_gdf.to_crs(crs)
-            biome, ecoregion, biome_num, ecoregion_num = get_biome(box(*bounds))
+            biome, ecoregion, biome_num, ecoregion_num = get_biome(box(*bounds), regions)
             gdf_in_tile = gpd.overlay(maus_proj, bbox_gdf_proj, how="intersection")
             shapes = (
                 (geom, 1)
@@ -222,7 +238,9 @@ def process_tile(tile, download_dir, maus, regions, max_retries):
 
             os.remove(temp_sat)
         os.remove(temp_cov)
-    except Exception:
+    except Exception as e:
+        with open('output.txt', 'a') as f:
+            f.write(f"failure happened {e}\n")
         pass
 
 
