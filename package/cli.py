@@ -14,6 +14,9 @@ def main():
     grid_parser = subparsers.add_parser("grid", help="Grid operations")
     grid_subparsers = grid_parser.add_subparsers(dest="command", required=True)
 
+    setup_parser = subparsers.add_parser("setup", help="Setup to run mad")
+    setup_parser.add_argument("-v", "--verbose", action="store_true", help="Verbose installation")
+
     lasso_train_parser = lasso_subparsers.add_parser("train", help="Train a lasso model")
     lasso_train_parser.add_argument("images", nargs="+", help="Path to tif file or files")
     lasso_train_parser.add_argument("output", type=str, help="Path the output directory for the graphs")
@@ -52,7 +55,11 @@ def main():
     # yolo_subparsers = yolo_parser.add_subparsers(dest="command", required=True)
 
     args = parser.parse_args()
-    match (args.action, args.command):
+    action = args.action
+    command = getattr(args, "command", None)
+    match (action, command):
+        case ("setup", None):
+            print("setup running")
         case ("lasso", "train"):
             lasso_train.run(args)
         case ("lasso", "predict"):
