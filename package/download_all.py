@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-from pathlib import Path
 import ee
 import pandas as pd
 import requests
@@ -8,13 +6,19 @@ import geopandas as gpd
 import os
 import numpy as np
 import json
-import argparse
 import hashlib
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from shapely.geometry import box
 from rasterio.features import rasterize
 from tqdm import tqdm
 from datetime import datetime
+from package import BASE_DIR
+DOWNLOAD_DIR = None
+GRID_PATH = None
+MAUS_PATH = None
+ECOREGION_PATH = None
+MAX_RETRIES = None
+
 
 CHANNELS = [
     "TCI_R",
@@ -119,8 +123,6 @@ def process_tile(tile, download_dir, MAUS_PATH, ECOREGION_PATH, max_retries):
         id_string = hashlib.sha256(f"{mid_lon}/{mid_lat}".encode()).hexdigest()
         # Early stopping condition if already downloaded (NOTE: does not work if less that 5 images can be downloaded)
         if all([os.path.exists(f'{download_dir}/S2_{id_string}_{j}.tif') for j in range(5)]):
-            with open(BASE_DIR / 'output.txt', 'a') as f:
-                f.write("Skipped one!\n")
             return
         maus, regions = load_data(MAUS_PATH, ECOREGION_PATH)
         # maus = gpd.read_file(MAUS_PATH).to_crs(epsg=4326)
@@ -244,21 +246,16 @@ def process_tile(tile, download_dir, MAUS_PATH, ECOREGION_PATH, max_retries):
         pass
 
 
-if __name__ == "__main__":
-    BASE_DIR = Path(__file__).resolve().parent.parent
-    parser = argparse.ArgumentParser()
-    parser.add_argument("grid_path", help="Path to the grid to be downloaded.")
-    parser.add_argument("download_dir", help="Path to the download directory")
-    parser.add_argument("--maus", "-m", default=BASE_DIR / "data/maus/global_mining_polygons_v2.gpkg", help="Path to the maus .gpkg")
-    parser.add_argument("--ecoregion", "-e", default=BASE_DIR / "data/Ecoregions2017/Ecoregions2017.shp", help="Path to the maus .gpkg")
-    args = parser.parse_args()
-
+def parse_args(args):
+    global DOWNLOAD_DIR, GRID_PATH, MAUS_PATH, ECOREGION_PATH, MAX_RETRIES
     DOWNLOAD_DIR = args.download_dir
     GRID_PATH = args.grid_path
     MAUS_PATH = args.maus
     ECOREGION_PATH = args.ecoregion
     MAX_RETRIES = 1000
 
+
+def run(args):
     # GEE authentication
     ee.Authenticate()
     ee.Initialize(project="siam-josh")

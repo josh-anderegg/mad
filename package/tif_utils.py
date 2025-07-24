@@ -4,21 +4,27 @@ import os
 from sklearn.preprocessing import MinMaxScaler
 from scipy.ndimage import gaussian_filter
 
+(B4, B3, B2, B5, B6, B7, B8, B8A, B9, B11, B12, AOT) = range(0, 12)
+BANDS = [B4, B3, B2, B5, B6, B7, B8, B8A, B9, B11, B12, AOT]
 
-def tif_to_vec(path, IN, EDGE, PIXEL_PER_IMAGE, SIGMA, sample_pixels=True):
+
+def tif_to_vec(path, IN, EDGE, PIXEL_PER_IMAGE, SIGMA, BANDS, sample_pixels=True):
     with rasterio.open(path) as src:
         data = src.read()
         bands, _, _ = data.shape
-        normalized_data = np.empty_like(data, dtype=np.float32)
+        available_bands = list(zip(range(len(src.descriptions)), list(map(lambda x: x.split(":")[0], src.descriptions))))
+        used_bands = [x[0] for x in available_bands if x[1] in BANDS]
+        norm_bands = []
         scaler = MinMaxScaler()
-        for i in range(bands):
+        for i in used_bands:
             band = data[i].reshape(-1, 1)
             norm_band = scaler.fit_transform(band).reshape(data.shape[1:])
-            normalized_data[i] = norm_band
+            norm_bands.append(norm_band)
 
-        normalized_data[-1] = gaussian_filter(normalized_data[-1], sigma=SIGMA)
-        pixels = normalized_data.reshape(bands, -1).T
-        # pixels = np.delete(pixels, [-2, -3, -4], axis=1) # Delete the RGB channels for visualization
+        norm_bands[-1] = gaussian_filter(norm_bands[-1], sigma=SIGMA)
+
+        normalized_data = np.stack(norm_bands, axis=0)
+        pixels = normalized_data.reshape(len(used_bands), -1).T
         if sample_pixels:
             pixels = pick_quality_pixels(pixels, IN, EDGE, PIXEL_PER_IMAGE)
         y = pixels[:, -1]
@@ -70,10 +76,6 @@ def output_prediction(prediction_band, image_path, output_path):
 def safe_index_calc(numerator, denominator, epsilon=1e-9):
     index = (numerator - denominator) / (numerator + denominator + epsilon)
     return index
-
-
-(B4, B3, B2, B5, B6, B7, B8, B8A, B9, B11, B12, AOT) = range(0, 12)
-BANDS = [B4, B3, B2, B5, B6, B7, B8, B8A, B9, B11, B12, AOT]
 
 
 def extend(X):

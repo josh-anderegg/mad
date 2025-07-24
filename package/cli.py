@@ -1,14 +1,18 @@
 import argparse
-import package.lasso_train
+from package import lasso_train, lasso_predict, create_grid, download_all
+from package import BASE_DIR
 
 
 def main():
     parser = argparse.ArgumentParser("MAD CLI interface")
 
-    subparses = parser.add_subparsers(dest="action", required=True)
+    subparsers = parser.add_subparsers(dest="action", required=True)
 
-    lasso_parser = subparses.add_parser("lasso", help="Lasso analysis operations")
+    lasso_parser = subparsers.add_parser("lasso", help="Lasso analysis operations")
     lasso_subparsers = lasso_parser.add_subparsers(dest="command", required=True)
+
+    grid_parser = subparsers.add_parser("grid", help="Grid operations")
+    grid_subparsers = grid_parser.add_subparsers(dest="command", required=True)
 
     lasso_train_parser = lasso_subparsers.add_parser("train", help="Train a lasso model")
     lasso_train_parser.add_argument("images", nargs="+", help="Path to tif file or files")
@@ -33,13 +37,28 @@ def main():
     lasso_predict_parser.add_argument("-e", "--extend", action="store_true", default=False, help="Extends the values with Spectracl indices (default: False)")
     lasso_predict_parser.add_argument("--super-extend", action="store_true", default=False, help="Extends the values with all possible Spectracl indices (default: False)")
 
+    grid_create_parser = grid_subparsers.add_parser("create", help="Create a grid")
+    grid_create_parser.add_argument("-g", "--grid-size", type=int, default=5500, help="Define the size of the grid in m (default: 5500)")
+    grid_create_parser.add_argument("-o", "--overlap-size", type=float, default=0.00001, help="Define mininmal overlap in point percentage (default: 0.00001 = 0.1%)")
+    grid_create_parser.add_argument("-p", "--negative-probability", type=float, default=0.000001, help="Probability for a not overlapping tile to be included (default: 0.000001 = 0.01%)")
+    grid_create_parser.add_argument("-r", "--random-seed", type=str, default=None, help="Random string used for all the randomization done.")
+
+    grid_download_parser = grid_subparsers.add_parser("download", help="Download the provided grid")
+    grid_download_parser.add_argument("grid_path", help="Path to the grid to be downloaded.")
+    grid_download_parser.add_argument("download_dir", help="Path to the download directory")
+    grid_download_parser.add_argument("--maus", "-m", default=BASE_DIR / "data/maus/global_mining_polygons_v2.gpkg", help="Path to the maus .gpkg",)
+    grid_download_parser.add_argument("--ecoregion", "-e", default=BASE_DIR / "data/Ecoregions2017/Ecoregions2017.shp", help="Path to the maus .gpkg",)
     # yolo_parser = subparses.add_parser("yolo", help="YOLO analysis operations")
     # yolo_subparsers = yolo_parser.add_subparsers(dest="command", required=True)
 
     args = parser.parse_args()
     match (args.action, args.command):
         case ("lasso", "train"):
-            package.lasso_train.run(args)
+            lasso_train.run(args)
         case ("lasso", "predict"):
-            package.lasso_predict.run(args)
+            lasso_predict.run(args)
+        case ("grid", "create"):
+            create_grid.run(args)
+        case ("grid", "download"):
+            download_all.run(args)
         # case ("yolo", "train"):
