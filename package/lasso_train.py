@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import numpy as np
-import argparse
 import glob
 import pandas as pd
 import seaborn as sns
@@ -23,92 +22,82 @@ from warnings import simplefilter
 from sklearn.exceptions import ConvergenceWarning
 simplefilter("ignore", category=ConvergenceWarning)
 
-parser = argparse.ArgumentParser()
-
-parser.add_argument("images", nargs="+", help="Path to tif file or files")
-parser.add_argument("output", type=str, help="Path the output directory for the graphs")
-parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose mode")
-parser.add_argument("-l", "--lambda-count", type=int, default=25, help="Amount of Lambdas iterated over (default: 10)")
-parser.add_argument("-m", "--minimal-lambda", type=int, default=-4, help="Minimal lambda used (10^-m) (default: -4)")
-parser.add_argument("-g", "--generate-output", default=True, action="store_false", help="Set if you want the script to create output")
-parser.add_argument("-c", "--count", type=int, default=10, help="Set the amount of images that should be used (default: 10)")
-parser.add_argument("-r", "--random-seed", type=str, default=None, help="Random string used for all the randomization done.")
-parser.add_argument("-p", "--pixel-count", type=int, default=1000, help="Maximal pixel count per image that is used to perform the lasso (default: 1000)")
-parser.add_argument("--pixel-ratios", type=str, default='0.5, 0.1, 0.4', help="Ratio between pixels taken inside, on the border and outside of the ground truth (default: 0.5, 0.1, 0.4)")
-parser.add_argument("-s", "--sigma", type=float, default=5, help="Sigma used to blur the ground truth. (default: 5)")
-parser.add_argument("--train-percentage", type=float, default=0.8, help="Percentage of the images that are used for the training vs. testing (default: 0.8)")
-parser.add_argument("-e", "--extend", action="store_true", default=False, help="Extends the values with Spectracl indices (default: False)")
-parser.add_argument("--super-extend", action="store_true", default=False, help="Extends the values with all possible Spectracl indices (default: False)")
-
-args = parser.parse_args()
-SIGMA = args.sigma
-VERBOSE = args.verbose
-LAMBDA_COUNT = args.lambda_count
-MINIMAL_LAMBDA = args.minimal_lambda
-RANDOM_SYMBOLS = string.ascii_letters + string.digits
-IMAGES = args.images
-COUNT = args.count
-OUTPUT = args.output
-GENERATE_OUTPUT = args.generate_output
-PIXEL_PER_IMAGE = args.pixel_count
-TRAIN_PERCENTAGE = args.train_percentage
-EXTEND = args.extend
-SUPER_EXTEND = args.super_extend
-
-os.makedirs(OUTPUT, exist_ok=True)
-try:
-    IN, EDGE, OUT = map(float, args.pixel_ratios.split(','))
-    if not abs(IN + EDGE + OUT - 1.0) < 1e-6:
-        raise ValueError("Split ratios must sum to 1.0")
-except Exception:
-    raise ValueError(f"Could not parse in split values: {args.pixel_ratios}, should be of the form IN, EDGE, OUT. All of them being floats.")
+SIGMA = None
+VERBOSE = None
+LAMBDA_COUNT = None
+MINIMAL_LAMBDA = None
+RANDOM_SYMBOLS = None
+IMAGES = None
+COUNT = None
+OUTPUT = None
+GENERATE_OUTPUT = None
+PIXEL_PER_IMAGE = None
+TRAIN_PERCENTAGE = None
+EXTEND = None
+SUPER_EXTEND = None
+IN = None
+EDGE = None
+OUT = None
 
 
-if args.random_seed is None:
-    SEED = ''.join(random.choices(RANDOM_SYMBOLS, k=32))
-else:
-    SEED = args.random_seed
+def get_bands():
+    global EXTEND, SUPER_EXTEND, BANDS
+    BANDS = ["B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12", "AOT"]
+    if not (EXTEND or SUPER_EXTEND):
+        return BANDS
+    if EXTEND:
+        return ["B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12", "AOT", "NDVI", "NDRE", "GNDVI", "NDMI", "MSI", "NDWI", "MNDWI", "NBR", "NBR2", "NDBI", "NDSI", "NDVI705", "NDTI", "AMWI"]
 
-if VERBOSE:
-    print(f'used seed: {SEED}')
+    if SUPER_EXTEND:
+        new_bands = BANDS.copy()
+        for bandi in BANDS:
+            for bandj in BANDS:
+                if bandi != bandj:
+                    new_bands.append(f'{bandi}-{bandj}')
+        return new_bands
 
-BANDS = ["B4", "B3", "B2", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12", "AOT"]
-if EXTEND:
-    BANDS = ["B4", "B3", "B2", "B5", "B6", "B7", "B8", "B8A", "B9", "B11", "B12", "AOT", "NDVI", "NDRE", "GNDVI", "NDMI", "MSI", "NDWI", "MNDWI", "NBR", "NBR2", "NDBI", "NDSI", "NDVI705", "NDTI", "AMWI"]
 
-if SUPER_EXTEND:
-    new_bands = BANDS.copy()
-    for bandi in BANDS:
-        for bandj in BANDS:
-            if bandi != bandj:
-                new_bands.append(f'{bandi}-{bandj}')
-    BANDS = new_bands
+def parse_args(args):
+    global SIGMA, VERBOSE, LAMBDA_COUNT, MINIMAL_LAMBDA, RANDOM_SYMBOLS, IMAGES, COUNT, OUTPUT, GENERATE_OUTPUT, PIXEL_PER_IMAGE, TRAIN_PERCENTAGE, EXTEND, SUPER_EXTEND, IN, EDGE, OUT, BANDS, SEED
+    SIGMA = args.sigma
+    VERBOSE = args.verbose
+    LAMBDA_COUNT = args.lambda_count
+    MINIMAL_LAMBDA = args.minimal_lambda
+    RANDOM_SYMBOLS = string.ascii_letters + string.digits
+    IMAGES = args.images
+    COUNT = args.count
+    OUTPUT = args.output
+    GENERATE_OUTPUT = args.generate_output
+    PIXEL_PER_IMAGE = args.pixel_count
+    TRAIN_PERCENTAGE = args.train_percentage
+    EXTEND = args.extend
+    SUPER_EXTEND = args.super_extend
+    BANDS = get_bands()
 
-print(BANDS)
-exit()
-random.seed(SEED)
+    try:
+        IN, EDGE, OUT = map(float, args.pixel_ratios.split(','))
+        if not abs(IN + EDGE + OUT - 1.0) < 1e-6:
+            raise ValueError("Split ratios must sum to 1.0")
+    except Exception:
+        raise ValueError(f"Could not parse in split values: {args.pixel_ratios}, should be of the form IN, EDGE, OUT. All of them being floats.")
 
-image_paths = []
-for pattern in IMAGES:
-    image_paths.extend(glob.glob(pattern))
+    if args.random_seed is None:
+        SEED = ''.join(random.choices(RANDOM_SYMBOLS, k=32))
+    else:
+        SEED = args.random_seed
 
-random.shuffle(image_paths)
-image_paths = image_paths[:COUNT]
-
-train_count = int(COUNT * TRAIN_PERCENTAGE)
-validation_count = COUNT - train_count
-
-train_images = image_paths[:train_count]
-validation_images = image_paths[train_count:][:validation_count]
+    if VERBOSE:
+        print(f'used seed: {SEED}')
 
 
 def load_set(image_paths, tstr="", sample_pixels=True, silent=False):
+    global IN, EDGE, PIXEL_PER_IMAGE, SIGMA, EXTEND, SUPER_EXTEND, VERBOSE
     X = []
     y = []
 
     size = 0
     with ProcessPoolExecutor() as executor:
-        futures = {executor.submit(tif_to_vec, path, IN, EDGE, PIXEL_PER_IMAGE, SIGMA, sample_pixels): path for path in image_paths}
+        futures = {executor.submit(tif_to_vec, path, IN, EDGE, PIXEL_PER_IMAGE, SIGMA, BANDS + ["Mine"], sample_pixels): path for path in image_paths}
         for i, future in enumerate(futures):
             try:
                 t_X, t_y = future.result()
@@ -135,34 +124,37 @@ def load_set(image_paths, tstr="", sample_pixels=True, silent=False):
     return X, y
 
 
-X_train, y_train = load_set(train_images, tstr="train", sample_pixels=True)
-X_validation, y_validation = load_set(validation_images, tstr="test", sample_pixels=False)
+def train(X_train, y_train, X_validation, y_validation):
+    global MINIMAL_LAMBDA, LAMBDA_COUNT, VERBOSE
 
-coefficients = []
-remaining_loss = []
-lambdas = lambdas = np.logspace(MINIMAL_LAMBDA, 0, LAMBDA_COUNT).tolist()
-best_model = Lasso()
-best_loss = 1 << 128
+    coefficients = []
+    remaining_loss = []
+    lambdas = lambdas = np.logspace(MINIMAL_LAMBDA, 0, LAMBDA_COUNT).tolist()
+    best_model = Lasso()
+    best_loss = 1 << 128
 
-for i, l in enumerate(lambdas):
+    for i, l in enumerate(lambdas):
+        if VERBOSE:
+            print(f"\rPerforming Lasso for Lambda {i + 1}/{len(lambdas)} done", end="")
+        lasso = Lasso(alpha=l)
+        lasso.fit(X_train, y_train)
+        coeffs = lasso.coef_
+        y_pred = lasso.predict(X_validation)
+        mse = mean_squared_error(y_validation, y_pred)
+        loss = mse
+        remaining_loss.append(loss)
+        coefficients.append(coeffs)
+        if loss < best_loss:
+            best_model = lasso
+            best_loss = loss
+
     if VERBOSE:
-        print(f"\rPerforming Lasso for Lambda {i + 1}/{len(lambdas)} done", end="")
-    lasso = Lasso(alpha=l)
-    lasso.fit(X_train, y_train)
-    coeffs = lasso.coef_
-    y_pred = lasso.predict(X_validation)
-    mse = mean_squared_error(y_validation, y_pred)
-    loss = mse
-    remaining_loss.append(loss)
-    coefficients.append(coeffs)
-    if loss < best_loss:
-        best_model = lasso
-        best_loss = loss
+        print("\nAll Lassos performed")
 
-if VERBOSE:
-    print("\nAll Lassos performed")
+    return lambdas, coefficients, best_model, remaining_loss
 
-if GENERATE_OUTPUT:
+
+def generate_output(lambdas, coefficients, best_model, remaining_loss, train_images, validation_images):
     if VERBOSE:
         print("Generating ouptut")
     timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
@@ -242,3 +234,29 @@ if GENERATE_OUTPUT:
     symlink_abs = os.path.abspath(symlink_path)
     os.symlink(target_abs, symlink_abs, target_is_directory=True)
     joblib.dump(best_model, f'{path}/model.pkl')
+
+
+def run(args):
+    global SEED
+    parse_args(args)
+    random.seed(SEED)
+
+    image_paths = []
+    for pattern in IMAGES:
+        image_paths.extend(glob.glob(pattern))
+
+    random.shuffle(image_paths)
+    image_paths = image_paths[:COUNT]
+
+    train_count = int(COUNT * TRAIN_PERCENTAGE)
+    validation_count = COUNT - train_count
+
+    train_images = image_paths[:train_count]
+    validation_images = image_paths[train_count:][:validation_count]
+
+    X_train, y_train = load_set(train_images, tstr="train", sample_pixels=True)
+    X_validation, y_validation = load_set(validation_images, tstr="test", sample_pixels=False)
+
+    lambdas, coefficients, best_model, remaining_loss = train(X_train, y_train, X_validation, y_validation)
+
+    generate_output(lambdas, coefficients, best_model, remaining_loss, train_images, validation_images)
