@@ -2,3 +2,5 @@
 data
 outputs
 __pycache__
+your_package.egg-info
+package/__pycache__/
