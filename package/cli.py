@@ -1,5 +1,5 @@
 import argparse
-from package import lasso_train, lasso_predict, create_grid, download_all
+from package import lasso_train, lasso_predict, create_grid, download_all, setup
 from package import BASE_DIR
 
 
@@ -16,6 +16,7 @@ def main():
 
     setup_parser = subparsers.add_parser("setup", help="Setup to run mad")
     setup_parser.add_argument("-v", "--verbose", action="store_true", help="Verbose installation")
+    setup_parser.add_argument("-m", "--minimal", action="store_true", help="Only create file structure, no downloads")
 
     lasso_train_parser = lasso_subparsers.add_parser("train", help="Train a lasso model")
     lasso_train_parser.add_argument("images", nargs="+", help="Path to tif file or files")
@@ -59,7 +60,7 @@ def main():
     command = getattr(args, "command", None)
     match (action, command):
         case ("setup", None):
-            print("setup running")
+            setup.run(args)
         case ("lasso", "train"):
             lasso_train.run(args)
         case ("lasso", "predict"):
