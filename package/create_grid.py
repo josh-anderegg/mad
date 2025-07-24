@@ -3,6 +3,7 @@ import geopandas as gpd
 from shapely.geometry import box
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor
+from itertools import repeat
 from tqdm import tqdm
 import random
 from package import BASE_DIR
@@ -39,6 +40,8 @@ def process_cell(coord, maus_path, regions_path, NEGATIVE_INCLUSION_PROBABILITY)
             return cell
         return None
 
+    if MIN_OVERLAP_RATIO == 0:
+        return cell
     candidates = local_gdf.geometry.iloc[idxs]  # type: ignore
     intersections = candidates.intersection(cell)
     overlap_area = sum(geom.area for geom in intersections if not geom.is_empty)
@@ -75,13 +78,13 @@ def full_grid():
 
 
 def filter_grid(grid):
-    from itertools import repeat
     global NEGATIVE_INCLUSION_PROBABILITY
     maus_path = BASE_DIR / "data/maus/global_mining_polygons_v2.gpkg"
     regions_path = BASE_DIR / "data/Ecoregions2017/Ecoregions2017.shp"
     results = []
     with ProcessPoolExecutor(max_workers=8) as executor:
-        for result in tqdm(executor.map(process_cell, grid, repeat(maus_path), repeat(regions_path), repeat(NEGATIVE_INCLUSION_PROBABILITY), chunksize=100000), total=len(grid)):
+        futures = executor.map(process_cell, grid, repeat(maus_path), repeat(regions_path), repeat(NEGATIVE_INCLUSION_PROBABILITY))
+        for result in tqdm(futures, total=len(grid)):
             if result is not None:
                 results.append(result)
     return results
