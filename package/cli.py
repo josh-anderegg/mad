@@ -1,5 +1,5 @@
 import argparse
-from package import lasso_train, lasso_predict, create_grid, download_all, setup
+from package import lasso_train, lasso_predict, create_grid, download_all, setup, create_dataset
 from package import BASE_DIR
 
 
@@ -13,6 +13,9 @@ def main():
 
     grid_parser = subparsers.add_parser("grid", help="Grid operations")
     grid_subparsers = grid_parser.add_subparsers(dest="command", required=True)
+
+    yolo_parser = subparsers.add_parser("yolo", help="YOLO operations")
+    yolo_subparsers = yolo_parser.add_subparsers(dest="command", required=True)
 
     setup_parser = subparsers.add_parser("setup", help="Setup to run mad")
     setup_parser.add_argument("-v", "--verbose", action="store_true", help="Verbose installation")
@@ -52,8 +55,12 @@ def main():
     grid_download_parser.add_argument("download_dir", help="Path to the download directory")
     grid_download_parser.add_argument("--maus", "-m", default=BASE_DIR / "data/maus/global_mining_polygons_v2.gpkg", help="Path to the maus .gpkg",)
     grid_download_parser.add_argument("--ecoregion", "-e", default=BASE_DIR / "data/Ecoregions2017/Ecoregions2017.shp", help="Path to the maus .gpkg",)
-    # yolo_parser = subparses.add_parser("yolo", help="YOLO analysis operations")
-    # yolo_subparsers = yolo_parser.add_subparsers(dest="command", required=True)
+
+    yolo_create_parser = yolo_subparsers.add_parser("create", help="Create a yolo dataset")
+    yolo_create_parser.add_argument("images", help="Path to the .tif images to be labeled")
+    yolo_create_parser.add_argument("path", help="Output path to the final dataset")
+    yolo_create_parser.add_argument("--maus", "-m", default=BASE_DIR / 'data/maus/global_mining_polygons_v2.gpkg', help="Path to the maus .gpkg set")
+    yolo_create_parser.add_argument("--random-seed", "-s", help="Random seed for the split")
 
     args = parser.parse_args()
     action = args.action
@@ -69,4 +76,5 @@ def main():
             create_grid.run(args)
         case ("grid", "download"):
             download_all.run(args)
-        # case ("yolo", "train"):
+        case ("yolo", "create"):
+            create_dataset.run(args)
