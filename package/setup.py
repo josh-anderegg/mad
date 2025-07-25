@@ -11,6 +11,7 @@ def create_folder_structure():
     os.makedirs(BASE_DIR / 'data', exist_ok=True)
     os.makedirs(BASE_DIR / 'data/clusters', exist_ok=True)
     os.makedirs(BASE_DIR / 'data/grids', exist_ok=True)
+    os.makedirs(BASE_DIR / 'data/yolo_dataset', exist_ok=True)
     os.makedirs(BASE_DIR / 'data/temp', exist_ok=True)
     os.makedirs(BASE_DIR / 'outputs', exist_ok=True)
 
