@@ -8,7 +8,7 @@ import geopandas as gpd
 from shapely.geometry import box
 from tqdm import tqdm
 from itertools import repeat
-
+gdal.UseExceptions()
 RANDOM_SYMBOLS = string.ascii_letters + string.digits
 MAUS_PATH = None
 OUTPUT_PATH = None
