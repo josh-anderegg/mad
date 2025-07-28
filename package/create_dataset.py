@@ -1,4 +1,5 @@
 from osgeo import gdal
+import re
 import os
 import random
 import string
@@ -117,8 +118,28 @@ def extract_images(images, output, bands=[]):
             pass
 
 
+def random_criteria(entry):
+    key, images = entry
+    return random.choice(images)
+
+
+def select_with_filter(images, criteria=random_criteria):
+    available_sets = {}
+    for image in images:
+        base, ext = os.path.splitext(image)
+        normalized = re.sub(r'_\d+$', '', base) + ext
+
+        if normalized not in available_sets:
+            available_sets[normalized] = [image]
+        else:
+            available_sets[normalized].append(image)
+
+    return list(map(random_criteria, available_sets.items()))
+
+
 def create_split():
     images = os.listdir(IMAGES_PATH)
+    images = select_with_filter(images)
     image_count = len(images)
     train_percentage, val_percentage, test_percentage = 0.7, 0.2, 0.1
     train_count, val_count, test_count = int(train_percentage * image_count), int(val_percentage * image_count), int(test_percentage * image_count)
