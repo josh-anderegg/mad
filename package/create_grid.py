@@ -2,8 +2,7 @@ import string
 import geopandas as gpd
 from shapely.geometry import box
 import numpy as np
-from concurrent.futures import ProcessPoolExecutor
-from itertools import repeat
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from tqdm import tqdm
 import random
 from package import BASE_DIR
@@ -15,24 +14,18 @@ GRID_SIZE = None
 SEED = None
 
 
-def process_cell(coord, maus_path, regions_path, NEGATIVE_INCLUSION_PROBABILITY):
-    global GRID_SIZE
-    maus_gdf = gpd.read_file(maus_path).to_crs(
-        epsg=3857
-    )
-    regions_gdf = gpd.read_file(regions_path).to_crs(
-        epsg=3857
-    )
-    sindex = maus_gdf.sindex
+def process_cell(coord, NEGATIVE_INCLUSION_PROBABILITY):
+    global GRID_SIZE, maus_gdf, regions_gdf
+
     cell_area = GRID_SIZE * GRID_SIZE
     x, y = coord
     cell = box(x, y, x + GRID_SIZE, y + GRID_SIZE)
 
     # Local import of data for multiprocessing (GeoDataFrames are not picklable)
-    local_gdf = maus_gdf
-    local_sindex = sindex
+    # local_gdf = maus_gdf
+    # local_sindex = sindex
 
-    idxs = list(local_sindex.intersection(cell.bounds))
+    idxs = list(maus_gdf.sindex.intersection(cell.bounds))
     # Insertion of negatives
     if not idxs:
         overlap = regions_gdf[regions_gdf.geometry.intersects(cell)]
@@ -42,7 +35,7 @@ def process_cell(coord, maus_path, regions_path, NEGATIVE_INCLUSION_PROBABILITY)
 
     if MIN_OVERLAP_RATIO == 0:
         return cell
-    candidates = local_gdf.geometry.iloc[idxs]  # type: ignore
+    candidates = maus_gdf.geometry.iloc[idxs]  # type: ignore
     intersections = candidates.intersection(cell)
     overlap_area = sum(geom.area for geom in intersections if not geom.is_empty)
 
@@ -66,27 +59,52 @@ def parse_args(args):
     print(f"used seed: {SEED}")
 
 
-def full_grid():
-    global GRID_SIZE
-    # Use the default borders for EPSG: 3857 https://epsg.io/3857
+def init_worker(maus_path, regions_path):
+    global maus_gdf, regions_gdf
+    maus_gdf = gpd.read_file(maus_path).to_crs(
+        epsg=3857
+    )
+    regions_gdf = gpd.read_file(regions_path).to_crs(
+        epsg=3857
+    )
+
+
+def chunked_iterable(iterable, chunk_size):
+    """Yield successive chunk_size-sized lists from iterable."""
+    chunk = []
+    for item in iterable:
+        chunk.append(item)
+        if len(chunk) == chunk_size:
+            yield chunk
+            chunk = []
+    if chunk:
+        yield chunk
+
+
+def generate_grid():
+    global NEGATIVE_INCLUSION_PROBABILITY, GRID_SIZE
+    maus_path = BASE_DIR / "data/maus/global_mining_polygons_v2.gpkg"
+    regions_path = BASE_DIR / "data/Ecoregions2017/Ecoregions2017.shp"
+
     minx, miny = -20037508.34, -20048966.1
     maxx, maxy = 20037508.34, 20048966.1
 
     x_coords = np.arange(minx, maxx, GRID_SIZE)
     y_coords = np.arange(miny, maxy, GRID_SIZE)
-    return [(x, y) for x in x_coords for y in y_coords]
+    grid = ((x, y) for x in x_coords for y in y_coords)
 
-
-def filter_grid(grid):
-    global NEGATIVE_INCLUSION_PROBABILITY
-    maus_path = BASE_DIR / "data/maus/global_mining_polygons_v2.gpkg"
-    regions_path = BASE_DIR / "data/Ecoregions2017/Ecoregions2017.shp"
     results = []
-    with ProcessPoolExecutor(max_workers=8) as executor:
-        futures = executor.map(process_cell, grid, repeat(maus_path), repeat(regions_path), repeat(NEGATIVE_INCLUSION_PROBABILITY))
-        for result in tqdm(futures, total=len(grid)):
-            if result is not None:
-                results.append(result)
+    chunk_size = 1000
+    total_cells = len(x_coords) * len(y_coords)
+    total_chunks = (total_cells + chunk_size - 1) // chunk_size
+    with ProcessPoolExecutor(max_workers=14, initializer=init_worker, initargs=(maus_path, regions_path)) as executor:
+        for chunk in tqdm(chunked_iterable(grid, chunk_size), total=total_chunks, desc="Chunks processed"):
+            futures = [executor.submit(process_cell, cell, NEGATIVE_INCLUSION_PROBABILITY) for cell in chunk]
+            for f in as_completed(futures):
+                result = f.result()
+                if result is not None:
+                    results.append(result)
+
     return results
 
 
@@ -114,6 +132,5 @@ def output_grid(grid):
 def run(args):
     parse_args(args)
     global MIN_OVERLAP_RATIO, GRID_SIZE, SEED
-    grid = full_grid()
-    grid = filter_grid(grid)
+    grid = generate_grid()
     output_grid(grid)

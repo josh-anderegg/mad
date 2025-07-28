@@ -123,10 +123,10 @@ def process_tile(tile, download_dir, MAUS_PATH, ECOREGION_PATH, max_retries):
         id_string = hashlib.sha256(f"{mid_lon}/{mid_lat}".encode()).hexdigest()
         # Early stopping condition if already downloaded (NOTE: does not work if less that 5 images can be downloaded)
         if all([os.path.exists(f'{download_dir}/S2_{id_string}_{j}.tif') for j in range(5)]):
+            with open('download_output.txt', "a") as f:
+                f.write(f"Skipped download for {id_string}\n")
             return
         maus, regions = load_data(MAUS_PATH, ECOREGION_PATH)
-        # maus = gpd.read_file(MAUS_PATH).to_crs(epsg=4326)
-        # regions = gpd.read_file(ECOREGION_PATH).to_crs(crs=3857)
 
         gee_box = ee.geometry.Geometry.BBox(
             tile["min_lon"], tile["min_lat"], tile["max_lon"], tile["max_lat"]
@@ -260,4 +260,5 @@ def run(args):
     ee.Authenticate()
     ee.Initialize(project="siam-josh")
 
+    parse_args(args)
     download_all_parallel(DOWNLOAD_DIR, GRID_PATH, MAUS_PATH, ECOREGION_PATH, MAX_RETRIES)
