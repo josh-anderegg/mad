@@ -2,6 +2,24 @@ import argparse
 from package import lasso_train, lasso_predict, create_grid, download_all, setup, create_dataset
 from package import BASE_DIR
 
+CHANNELS = [
+    "TCI_R",
+    "TCI_G",
+    "TCI_B",
+    "B2",
+    "B3",
+    "B4",
+    "B5",
+    "B6",
+    "B7",
+    "B8",
+    "B8A",
+    "B9",
+    "B11",
+    "B12",
+    "AOT",
+]
+
 
 def main():
     parser = argparse.ArgumentParser("MAD CLI interface")
@@ -53,6 +71,7 @@ def main():
     grid_download_parser = grid_subparsers.add_parser("download", help="Download the provided grid")
     grid_download_parser.add_argument("grid_path", help="Path to the grid to be downloaded.")
     grid_download_parser.add_argument("download_dir", help="Path to the download directory")
+    grid_download_parser.add_argument("--bands", "-b", nargs="+", choices=CHANNELS, default=CHANNELS, help="List of band names")
     grid_download_parser.add_argument("--maus", "-m", default=BASE_DIR / "data/maus/global_mining_polygons_v2.gpkg", help="Path to the maus .gpkg",)
     grid_download_parser.add_argument("--ecoregion", "-e", default=BASE_DIR / "data/Ecoregions2017/Ecoregions2017.shp", help="Path to the maus .gpkg",)
 

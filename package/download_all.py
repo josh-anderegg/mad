@@ -18,6 +18,7 @@ GRID_PATH = None
 MAUS_PATH = None
 ECOREGION_PATH = None
 MAX_RETRIES = None
+USED_CHANNELS = None
 
 
 CHANNELS = [
@@ -146,7 +147,7 @@ def process_tile(tile, download_dir, MAUS_PATH, ECOREGION_PATH, max_retries):
             .filter(ee.filter.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
             .sort("CLOUDY_PIXEL_PERCENTAGE")
             .limit(10)
-            .select(CHANNELS)
+            .select(USED_CHANNELS)
             .toList(5)
         )
 
@@ -247,8 +248,9 @@ def process_tile(tile, download_dir, MAUS_PATH, ECOREGION_PATH, max_retries):
 
 
 def parse_args(args):
-    global DOWNLOAD_DIR, GRID_PATH, MAUS_PATH, ECOREGION_PATH, MAX_RETRIES
+    global DOWNLOAD_DIR, GRID_PATH, MAUS_PATH, ECOREGION_PATH, MAX_RETRIES, USED_CHANNELS
     DOWNLOAD_DIR = args.download_dir
+    USED_CHANNELS = args.bands
     GRID_PATH = args.grid_path
     MAUS_PATH = args.maus
     ECOREGION_PATH = args.ecoregion
