@@ -5,7 +5,7 @@ mkdir -p "${output}"
 
 # Possible early return in case we already have the data downloaded for a tile
 finished_file="${output}/${input}.json"
-if [ -f "$finished_file" ]; then
+if [ -f "$finished_file" ] && [ $(stat -c%s "$finished_file") -gt 1024 ]; then
     echo "Skipping $input — meta data already collected."
     exit 0
 fi
@@ -15,7 +15,7 @@ mid=${input:2:1}
 lst=${input:3:2}
 S3_PATH="s3://sentinel-s2-l2a/tiles/$fst/$mid/$lst/2019"
 TMP_DIR=$(mktemp -d "${output}/tmp.XXXXXX")
-
+trap 'rm -rf "$TMP_DIR"' EXIT
 # List all metadata.xml files (full S3 keys)
 aws s3 ls "$S3_PATH" --recursive --no-sign-request | grep metadata.xml | awk '{print $4}' > "$TMP_DIR/metadata_files.txt"
 
@@ -110,4 +110,3 @@ done < "$TMP_DIR/metadata_files.txt"
 # Remove trailing comma and close JSON array
 json_array="${json_array%,}]"
 echo "$json_array" > "$finished_file"
-rm -rf "$TMP_DIR"
