@@ -25,39 +25,8 @@ aws_ls=$(aws s3 ls "$S3_PATH" --recursive --no-sign-request 2>> "$LOG_FILE")
 echo "$aws_ls" | grep metadata.xml | awk '{print $4}' > "$TMP_DIR/metadata_files.txt"
 
 if [ ! -s "$TMP_DIR/metadata_files.txt" ]; then
-    echo "No metadata.xml returned from aws! Trying neighboring zone letters..." >> "$LOG_FILE"
-    
-    valid_letters="CDEFGHJKLMNPQRSTUVWX"
-    mid_index=$(echo "$valid_letters" | grep -bo "$mid" | cut -d: -f1)
-
-    fallback_letters=""
-    if [ "$mid_index" != "" ]; then
-        above=${valid_letters:$((mid_index + 1)):1}
-        below=${valid_letters:$((mid_index - 1)):1}
-        fallback_letters="$below $above"
-    fi
-
-    found=0
-    for alt_mid in $fallback_letters; do
-        alt_path="s3://sentinel-s2-l2a/tiles/$fst/$alt_mid/$lst/2019"
-        echo "Trying fallback: $alt_path" >> "$LOG_FILE"
-        aws_ls=$(aws s3 ls "$alt_path" --recursive --no-sign-request 2>> "$LOG_FILE")
-        echo "$aws_ls" | grep metadata.xml | awk '{print $4}' > "$TMP_DIR/metadata_files.txt"
-
-        if [ -s "$TMP_DIR/metadata_files.txt" ]; then
-            echo "Found metadata.xml under fallback letter $alt_mid" >> "$LOG_FILE"
-            mid="$alt_mid"  # Update mid for downstream processing
-            S3_PATH="$alt_path"
-            finished_file="${output}/${fst}${mid}${lst}.json"
-            found=1
-            break
-        fi
-    done
-
-    if [ "$found" -ne 1 ]; then
-        echo "Still no metadata.xml after trying neighboring letters." >> "$LOG_FILE"
-        exit 1
-    fi
+    echo "No metadata.xml returned from aws!" >> "$LOG_FILE"
+    exit 1
 fi
 
 nr=0
