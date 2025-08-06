@@ -20,6 +20,7 @@ S3_PATH="s3://sentinel-s2-l2a/tiles/$fst/$mid/$lst/2019"
 TMP_DIR=$(mktemp -d "${output}/tmp.XXXXXX")
 
 trap 'rm -rf "$TMP_DIR"' EXIT
+
 # List all metadata.xml files (full S3 keys)
 aws_ls=$(aws s3 ls "$S3_PATH" --recursive --no-sign-request 2>> "$LOG_FILE")
 echo "$aws_ls" | grep metadata.xml | awk '{print $4}' > "$TMP_DIR/metadata_files.txt"
