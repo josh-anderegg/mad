@@ -76,10 +76,12 @@ def main():
     grid_download_parser.add_argument("--ecoregion", "-e", default=BASE_DIR / "data/Ecoregions2017/Ecoregions2017.shp", help="Path to the maus .gpkg",)
 
     yolo_create_parser = yolo_subparsers.add_parser("create", help="Create a yolo dataset")
-    yolo_create_parser.add_argument("images", help="Path to the .tif images to be labeled")
+    yolo_create_parser.add_argument("database", help="Path to the .tif images to use")
     yolo_create_parser.add_argument("path", help="Output path to the final dataset")
     yolo_create_parser.add_argument("--maus", "-m", default=BASE_DIR / 'data/maus/global_mining_polygons_v2.gpkg', help="Path to the maus .gpkg set")
     yolo_create_parser.add_argument("--random-seed", "-s", help="Random seed for the split")
+    yolo_create_parser.add_argument("--filters", "-f", default=[], nargs="+", help="Filters to apply")
+    yolo_create_parser.add_argument("--expansions", "-e", default=[], nargs="+", help="Expansions to apply")
 
     args = parser.parse_args()
     action = args.action
