@@ -14,7 +14,7 @@ if [ "$TOTAL_INT" -ne 1 ]; then
 fi
 
 # Get shuffled list of .json files
-files=($(find "$DATA_DIR" -maxdepth 1 -type f -name '*.json' | shuf))
+files=($(find "$DATA_DIR" -maxdepth 1 -type f -name '*.jp2' | shuf))
 total_files=${#files[@]}
 
 train_count=$(printf "%.0f" "$(echo "$total_files * $TRAIN_RATIO" | bc)")
@@ -29,17 +29,17 @@ test_files=("${files[@]:train_count+val_count}")
 # Write to output file
 for f in "${train_files[@]}"; do
   filename="$(basename "$f")"
-  echo "${filename%.json}_tci.jp2" >> "$DATA_DIR/train.txt"
+  echo "${filename%.jp2}.jp2" >> "$DATA_DIR/train.txt"
 done
 
 for f in "${val_files[@]}"; do
   filename="$(basename "$f")"
-  echo "${filename%.json}_tci.jp2" >> "$DATA_DIR/val.txt"
+  echo "${filename%.jp2}.jp2" >> "$DATA_DIR/val.txt"
 done
 
 for f in "${test_files[@]}"; do
   filename="$(basename "$f")"
-  echo "${filename%.json}_tci.jp2" >> "$DATA_DIR/test.txt"
+  echo "${filename%.jp2}.jp2" >> "$DATA_DIR/test.txt"
 done
 
 echo "Split created"

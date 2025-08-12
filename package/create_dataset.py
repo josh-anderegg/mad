@@ -137,13 +137,19 @@ def process_window(src, win, name, sub, maus_df):
     label(src, win, lbl_path, maus_df)
 
 
+INCLUSION_PROBABILITY = 0.005
+
+
 def filter_map(src, windows, filter_func, maus_df):
     quality_failures = set()
     ret_windows = []
     for name, window in windows:
         if contains_nodata(src, window):
             quality_failures.add("MISSING_DATA")
+            continue
         if not contains_polygons(src, window, maus_df):
+            if random.random() < INCLUSION_PROBABILITY:
+                ret_windows.append((name, window))
             continue
         else:
             ret_windows.append((name, window))
@@ -188,7 +194,7 @@ def process_images(sub, images):
     quality_failures = []
 
     print(f"Processing {sub} images")
-    with ProcessPoolExecutor(max_workers=1) as executor:
+    with ProcessPoolExecutor(max_workers=3) as executor:
         results = executor.map(process_image, [f"{DATABASE_PATH}/{image}" for image in images], repeat(sub))
         for image, quality_failure in tqdm(zip(images, results), total=len(images)):
             quality_failures.append((image, quality_failure))
