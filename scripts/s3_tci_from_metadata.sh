@@ -24,7 +24,6 @@ best_file=$(
   jq -r '
     [ .[]
       | select(
-          .cloud_coverage < 20 and
           .no_data < 10
         )
     ]
