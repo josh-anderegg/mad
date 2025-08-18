@@ -22,13 +22,13 @@ spring=$(
       | select(
           (.sensing_time | sub("\\..*Z$"; "") | strptime("%Y-%m-%dT%H:%M:%S") | .[1] + 1) as $month
           | $month >= 3 and $month <= 5 and
-            .snow < 3 and
+            .snow < 40 and
             .cloud_coverage < 20
         )
     ]
     | sort_by(.cloud_coverage)
     | .[].metadata_key
-  ' "$metadata"
+  ' "$metadata" | sed 's/metadata.xml//'
 )
 
 summer=$(
@@ -37,13 +37,14 @@ summer=$(
       | select(
           (.sensing_time | sub("\\..*Z$"; "") | strptime("%Y-%m-%dT%H:%M:%S") | .[1] + 1) as $month
           | $month >= 6 and $month <= 8 and
-            .snow < 3 and
-            .cloud_coverage < 20
+            .snow < 20 and
+            .cloud_coverage < 20 and
+            .no_data < 50
         )
     ]
     | sort_by(.cloud_coverage)
     | .[].metadata_key
-  ' "$metadata"
+  ' "$metadata" | sed 's/metadata.xml//'
 )
 
 fall=$(
@@ -52,28 +53,93 @@ fall=$(
       | select(
           (.sensing_time | sub("\\..*Z$"; "") | strptime("%Y-%m-%dT%H:%M:%S") | .[1] + 1) as $month
           | $month >= 9 and $month <= 11 and
-            .snow < 3 and
-            .cloud_coverage < 20
+            .snow < 10 and
+            .cloud_coverage < 20 and
+            .no_data < 50
         )
     ]
     | sort_by(.cloud_coverage)
     | .[].metadata_key
-  ' "$metadata"
+  ' "$metadata" | sed 's/metadata.xml//'
 )
-echo "spring"
-echo "$spring"
-echo "summer"
-echo "$summer"
-echo "fall"
-echo "$fall"
-# if [ -z "$" ] || [ "$best_file" = "null" ]; then
-#     echo "No suitable image found for $name" >> "$LOG_FILE"
-#     exit 1
-# fi
 
-image_key=$(echo "$best_file" | sed 's/metadata.xml//')
-$SCRIPT_DIR/s3_download_tci.sh "$TMP_DIR" "$image_key" 2>> "$LOG_FILE"
+scl_files=()
+scene_ids=()
+MAX_IMAGES=8
+i=0
+for scene in $summer; do
+  if [ "$i" -ge "$MAX_IMAGES" ]; then
+    break
+  fi
 
-# nohup needed here as the parent shell ends and the child shell should persist
-# WARNING: May cause issues if downloads are significantly fast than the transform
-nohup "$SCRIPT_DIR/s3_transform_tci.sh" "$TMP_DIR" "$finished_file" > /dev/null 2>> "$LOG_FILE" &
+  scl_file="$(basename "$name")_scl_${i}.jp2"
+
+  # Download SCL
+  $SCRIPT_DIR/s3_download_scl.sh "$TMP_DIR" "$scene" "$scl_file"
+
+  # Reclassify unwanted classes
+  clean_scl="$TMP_DIR/clean_${scl_file%.jp2}.tif"
+  gdal_calc.py -A "$TMP_DIR/$scl_file" \
+    --outfile="$clean_scl" \
+    --calc="((A==2)+(A==4)+(A==5)+(A==6)+(A==7))" \
+   --type=Byte --format=GTiff --overwrite --quiet \
+   --NoDataValue=None   
+
+  # Resample to match TCI
+  resampled_scl="$TMP_DIR/resampled_${scl_file%.jp2}.tif"
+  gdalwarp -tr 10 10 -r nearest -overwrite "$clean_scl" "$resampled_scl"
+
+  # Append only the file that actually exists
+  scl_files+=("$resampled_scl")
+  scene_ids+=("$scene")
+
+  ((i++))
+done
+
+img_files=()
+j=0
+for scene in "${scene_ids[@]}"; do
+  img_file="$(basename "$name")_tci_${j}.jp2"
+  $SCRIPT_DIR/s3_download_tci.sh "$TMP_DIR" "$scene" "$img_file" 
+  img_files+=("$TMP_DIR/$img_file")
+  ((j++))
+done
+
+out_img="${name}_tci_merged.tif"
+cur_scl="${name}_scl_merged.tif"
+
+base_img="$TMP_DIR/base.tif"
+
+gdalwarp "${img_files[0]}" "$base_img" \
+  -of GTiff \
+  -dstnodata 0 \
+  -co INTERLEAVE=PIXEL \
+  -co COMPRESS=DEFLATE \
+  -co TILED=YES
+
+# Step 2: Mask all subsequent images with their SCL
+for idx in $(seq 0 $((${#img_files[@]}-1))); do
+  img="${img_files[$idx]}"
+  scl="${scl_files[$idx]}"
+  out_masked="$TMP_DIR/masked_${idx}.tif"
+
+  echo "Masking: $img with SCL: $scl"
+
+  gdal_calc.py -A "$img" -B "$scl" \
+    --outfile="$out_masked" \
+    --calc="where(B==0, nan, A)" \
+    --allBands=A \
+    --type=Byte --quiet --overwrite \
+    --NoDataValue=0 \
+    --format=GTiff --creation-option="INTERLEAVE=PIXEL"
+
+  masked_files+=("$out_masked")
+done
+
+reversed_files=($(printf "%s\n" "${masked_files[@]}" | tac))
+
+gdal_merge.py -o "$out_img" -n 0 -a_nodata 0 -of GTiff "$base_img" "${reversed_files[@]}"
+echo "Final merged SCL: $out_scl"
+echo "Final merged TCI: $out_img"
+echo "Done" >> "$LOG_FILE"
+rm -rf $TMP_DIR
