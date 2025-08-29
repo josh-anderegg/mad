@@ -137,7 +137,7 @@ def process_window(src, win, name, sub, maus_df):
     label(src, win, lbl_path, maus_df)
 
 
-INCLUSION_PROBABILITY = 0.005
+INCLUSION_PROBABILITY = 1  # 0.005
 
 
 def filter_map(src, windows, filter_func, maus_df):
@@ -156,7 +156,7 @@ def filter_map(src, windows, filter_func, maus_df):
     return (quality_failures, ret_windows)
 
 
-def simple_grid(image_path, tile_size=1000):
+def simple_grid(image_path, tile_size=500):
     with rasterio.open(image_path) as src:
         width = src.width
         height = src.height

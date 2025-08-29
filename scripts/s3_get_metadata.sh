@@ -4,7 +4,7 @@ output=$2
 mkdir -p "${output}"
 
 # Possible early return in case we already have the data downloaded for a tile
-finished_file="${output}/${input}_sources.json"
+finished_file="${output}/${input}.json"
 
 LOG_FILE="${output}/${input}.tlog"
 echo "[$input]" > "$LOG_FILE"
