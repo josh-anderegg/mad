@@ -1,5 +1,5 @@
 import argparse
-from package import lasso_train, lasso_predict, create_grid, download_all, setup, create_dataset
+from package import lasso_train, lasso_predict, create_grid, download_all, setup, create_dataset, create_database
 from package import BASE_DIR
 
 CHANNELS = [
@@ -29,8 +29,8 @@ def main():
     lasso_parser = subparsers.add_parser("lasso", help="Lasso analysis operations")
     lasso_subparsers = lasso_parser.add_subparsers(dest="command", required=True)
 
-    grid_parser = subparsers.add_parser("grid", help="Grid operations")
-    grid_subparsers = grid_parser.add_subparsers(dest="command", required=True)
+    database_parser = subparsers.add_parser("database", help="Database operations")
+    database_subparsers = database_parser.add_subparsers(dest="command", required=True)
 
     yolo_parser = subparsers.add_parser("yolo", help="YOLO operations")
     yolo_subparsers = yolo_parser.add_subparsers(dest="command", required=True)
@@ -62,18 +62,19 @@ def main():
     lasso_predict_parser.add_argument("-e", "--extend", action="store_true", default=False, help="Extends the values with Spectracl indices (default: False)")
     lasso_predict_parser.add_argument("--super-extend", action="store_true", default=False, help="Extends the values with all possible Spectracl indices (default: False)")
 
-    grid_create_parser = grid_subparsers.add_parser("create", help="Create a grid")
-    grid_create_parser.add_argument("-g", "--grid-size", type=int, default=5500, help="Define the size of the grid in m (default: 5500)")
-    grid_create_parser.add_argument("-o", "--overlap-size", type=float, default=0.00001, help="Define mininmal overlap in point percentage (default: 0.00001 = 0.1%)")
-    grid_create_parser.add_argument("-p", "--negative-probability", type=float, default=0.000001, help="Probability for a not overlapping tile to be included (default: 0.000001 = 0.01%)")
-    grid_create_parser.add_argument("-r", "--random-seed", type=str, default=None, help="Random string used for all the randomization done.")
+    database_create_parser = database_subparsers.add_parser("create", help="Create a database")
+    database_create_parser.add_argument("name", type=str, help="Define the name of the database")
+    database_create_parser.add_argument("source", type=str, help="Give a path to a polygonal .gpkg or the name of a country")
+    database_create_parser.add_argument("-t", "--train-val-test-split", type=str, default='0.8, 0.1, 0.1', help="Ratios for the train, validation and test set in the format x, y ,z (default: 0.8, 0.1, 0.1)")
+    database_create_parser.add_argument("-d", "--datapath", type=str, default=BASE_DIR / 'data', help="Path to the data directory")
+    database_create_parser.add_argument("-r", "--random-seed", type=str, default=None, help="Random string used for all the randomization done.")
 
-    grid_download_parser = grid_subparsers.add_parser("download", help="Download the provided grid")
-    grid_download_parser.add_argument("grid_path", help="Path to the grid to be downloaded.")
-    grid_download_parser.add_argument("download_dir", help="Path to the download directory")
-    grid_download_parser.add_argument("--bands", "-b", nargs="+", choices=CHANNELS, default=CHANNELS, help="List of band names")
-    grid_download_parser.add_argument("--maus", "-m", default=BASE_DIR / "data/maus/global_mining_polygons_v2.gpkg", help="Path to the maus .gpkg",)
-    grid_download_parser.add_argument("--ecoregion", "-e", default=BASE_DIR / "data/Ecoregions2017/Ecoregions2017.shp", help="Path to the maus .gpkg",)
+    database_download_parser = database_subparsers.add_parser("download", help="Download the provided grid")
+    database_download_parser.add_argument("grid_path", help="Path to the grid to be downloaded.")
+    database_download_parser.add_argument("download_dir", help="Path to the download directory")
+    database_download_parser.add_argument("--bands", "-b", nargs="+", choices=CHANNELS, default=CHANNELS, help="List of band names")
+    database_download_parser.add_argument("--maus", "-m", default=BASE_DIR / "data/maus/global_mining_polygons_v2.gpkg", help="Path to the maus .gpkg",)
+    database_download_parser.add_argument("--ecoregion", "-e", default=BASE_DIR / "data/Ecoregions2017/Ecoregions2017.shp", help="Path to the maus .gpkg",)
 
     yolo_create_parser = yolo_subparsers.add_parser("create", help="Create a yolo dataset")
     yolo_create_parser.add_argument("database", help="Path to the .tif images to use")
@@ -93,9 +94,9 @@ def main():
             lasso_train.run(args)
         case ("lasso", "predict"):
             lasso_predict.run(args)
-        case ("grid", "create"):
-            create_grid.run(args)
-        case ("grid", "download"):
+        case ("database", "create"):
+            create_database.run(args)
+        case ("database", "download"):
             download_all.run(args)
         case ("yolo", "create"):
             create_dataset.run(args)
