@@ -106,7 +106,7 @@ def generate_tiles_and_labels(
 
 
 all_tif_path = "/run/media/cynik/Elements/s2-images/"
-maus_df = gpd.read_file("~/Documents/mad/data/maus/global_mining_polygons_v2.gpkg")
+maus_df = gpd.read_file("~/Documents/mad/data/geometries/global_mining_polygons_v2.gpkg")
 all_tifs = [path for path in os.listdir(all_tif_path) if path.lower().endswith(".tif")]
 length = len(all_tifs)
 random.shuffle(all_tifs)

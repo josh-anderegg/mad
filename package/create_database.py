@@ -21,7 +21,7 @@ def create_split(tile_names):
 def get_intersection():
     global INTERSECTION
     try:
-        aws_tiles = gpd.read_file(BASE_DIR / "data/grids/S2A_OPER_GIP_TILPAR_MPC__20151209T095117_V20150622T000000_21000101T000000_B00.kml")
+        aws_tiles = gpd.read_file(BASE_DIR / "data/geometries/S2A_OPER_GIP_TILPAR_MPC__20151209T095117_V20150622T000000_21000101T000000_B00.kml")
     except FileNotFoundError:
         print("The mgrs sentinel grid was not found, did you run `mad setup`?")
 
@@ -29,7 +29,7 @@ def get_intersection():
         polygons = gpd.read_file(INTERSECTION)
     else:
         try:
-            polygons = gpd.read_file(BASE_DIR / "data/grids/ne_110m_admin_0_countries.shp")
+            polygons = gpd.read_file(BASE_DIR / "data/geometries/ne_110m_admin_0_countries.shp")
         except FileNotFoundError:
             print("The country polygons were not found, did you run `mad setup`?")
 

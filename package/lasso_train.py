@@ -25,7 +25,6 @@ SIGMA = None
 VERBOSE = None
 LAMBDA_COUNT = None
 MINIMAL_LAMBDA = None
-RANDOM_SYMBOLS = None
 IMAGES = None
 COUNT = None
 OUTPUT = None
@@ -37,6 +36,7 @@ SUPER_EXTEND = None
 IN = None
 EDGE = None
 OUT = None
+RANDOM_SYMBOLS = string.ascii_letters + string.digits
 
 
 def get_bands():
@@ -62,7 +62,6 @@ def parse_args(args):
     VERBOSE = args.verbose
     LAMBDA_COUNT = args.lambda_count
     MINIMAL_LAMBDA = args.minimal_lambda
-    RANDOM_SYMBOLS = string.ascii_letters + string.digits
     IMAGES = args.images
     COUNT = args.count
     OUTPUT = args.output

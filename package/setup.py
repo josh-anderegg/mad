@@ -10,8 +10,7 @@ from io import BytesIO
 def create_folder_structure():
     os.makedirs(BASE_DIR / 'data', exist_ok=True)
     os.makedirs(BASE_DIR / 'data/clusters', exist_ok=True)
-    os.makedirs(BASE_DIR / 'data/grids', exist_ok=True)
-    os.makedirs(BASE_DIR / 'data/yolo_dataset', exist_ok=True)
+    os.makedirs(BASE_DIR / 'data/geometries', exist_ok=True)
     os.makedirs(BASE_DIR / 'data/temp', exist_ok=True)
     os.makedirs(BASE_DIR / 'outputs', exist_ok=True)
 
@@ -38,14 +37,16 @@ def download_and_unzip(url, extract_to, name):
 def download_datasets():
     maus_link = "https://download.pangaea.de/dataset/942325/files/global_mining_polygons_v2.gpkg"
     regions_link = "https://storage.googleapis.com/teow2016/Ecoregions2017.zip"
+    countries_link = "https://www.naturalearthdata.com/http//www.naturalearthdata.com/download/10m/cultural/ne_10m_admin_0_countries.zip"
 
     response = requests.get(maus_link, stream=True)
     response.raise_for_status()
-    with open(BASE_DIR / "data/maus/global_mining_polygons_v2.gpkg", 'wb') as f:
+    with open(BASE_DIR / "data/geometries/maus/global_mining_polygons_v2.gpkg", 'wb') as f:
         for chunk in response.iter_content(chunk_size=8192):
             f.write(chunk)
 
-    download_and_unzip(regions_link, BASE_DIR / 'data', "Ecoregions2017")
+    download_and_unzip(regions_link, BASE_DIR / 'data/geometries', ".")
+    download_and_unzip(countries_link, BASE_DIR / 'data/geometries', ".")
 
 
 def run(args):

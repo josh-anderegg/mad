@@ -83,8 +83,8 @@ def chunked_iterable(iterable, chunk_size):
 
 def generate_grid():
     global NEGATIVE_INCLUSION_PROBABILITY, GRID_SIZE
-    maus_path = BASE_DIR / "data/maus/global_mining_polygons_v2.gpkg"
-    regions_path = BASE_DIR / "data/Ecoregions2017/Ecoregions2017.shp"
+    maus_path = BASE_DIR / "data/geometries/global_mining_polygons_v2.gpkg"
+    regions_path = BASE_DIR / "data/geometries/Ecoregions2017.shp"
 
     minx, miny = -20037508.34, -20048966.1
     maxx, maxy = 20037508.34, 20048966.1
