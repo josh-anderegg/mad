@@ -1,14 +1,14 @@
 #!/bin/sh
 input=$1
 output=$2
-mkdir -p "${output}"
+year=${3:-2019}
 
-# Possible early return in case we already have the data downloaded for a tile
 finished_file="${output}/${input}.json"
 
-LOG_FILE="${output}/${input}.tlog"
+LOG_FILE="${output}/${input}_indexing.tlog"
 echo "[$input]" > "$LOG_FILE"
-if [ -f "$finished_file" ] && [ $(stat -c%s "$finished_file") -gt 1024 ]; then
+# Possible early return in case we already have the data downloaded for a tile
+if [ -f "$finished_file" ] ; then
     echo "Metadata already collected for this file." >> "$LOG_FILE"
     exit 0
 fi
@@ -16,8 +16,8 @@ fi
 fst=$((10#${input:0:2}))
 mid=${input:2:1}
 lst=${input:3:2}
-S3_PATH="s3://sentinel-s2-l2a/tiles/$fst/$mid/$lst/2019"
-TMP_DIR=$(mktemp -d "${output}/tmp.XXXXXX")
+S3_PATH="s3://sentinel-s2-l2a/tiles/$fst/$mid/$lst/$year"
+TMP_DIR=$(mktemp -d) 
 
 trap 'rm -rf "$TMP_DIR"' EXIT
 
@@ -121,3 +121,4 @@ done < "$TMP_DIR/metadata_files.txt"
 # Remove trailing comma and close JSON array
 json_array="${json_array%,}]"
 echo "$json_array" > "$finished_file"
+echo "Files Downaloded" >> "$LOG_FILE"

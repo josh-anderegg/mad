@@ -1,5 +1,5 @@
 import argparse
-from package import lasso_train, lasso_predict, create_grid, download_all, setup, create_dataset, create_database
+from package import lasso_train, lasso_predict, create_grid, download_all, setup, create_dataset, create_database, index_database
 from package import BASE_DIR
 
 CHANNELS = [
@@ -69,6 +69,11 @@ def main():
     database_create_parser.add_argument("-d", "--datapath", type=str, default=BASE_DIR / 'data', help="Path to the data directory")
     database_create_parser.add_argument("-r", "--random-seed", type=str, default=None, help="Random string used for all the randomization done.")
 
+    database_index_parser = database_subparsers.add_parser("index", help="Create the image index")
+    database_index_parser.add_argument("path", type=str, help="Path to the database for which you want to create the index.")
+    database_index_parser.add_argument("--workers", "-w", type=int, default=8, help="Number of workers for downloading the metadata (default: 8)")
+    database_index_parser.add_argument("--year", "-y", type=int, default=2019, help="Year from which to download the metadata from (default: 2019)")
+
     database_download_parser = database_subparsers.add_parser("download", help="Download the provided grid")
     database_download_parser.add_argument("grid_path", help="Path to the grid to be downloaded.")
     database_download_parser.add_argument("download_dir", help="Path to the download directory")
@@ -96,6 +101,8 @@ def main():
             lasso_predict.run(args)
         case ("database", "create"):
             create_database.run(args)
+        case ("database", "index"):
+            index_database.run(args)
         case ("database", "download"):
             download_all.run(args)
         case ("yolo", "create"):
