@@ -1,11 +1,9 @@
 import argparse
-from package import lasso_train, lasso_predict, create_grid, download_all, setup, create_dataset, create_database, index_database
+from package import lasso_train, lasso_predict, create_grid, download_all, setup, create_dataset, create_database, index_database, download_database
 from package import BASE_DIR
 
-CHANNELS = [
-    "TCI_R",
-    "TCI_G",
-    "TCI_B",
+BANDS = [
+    "TCI",
     "B2",
     "B3",
     "B4",
@@ -20,6 +18,11 @@ CHANNELS = [
     "AOT",
 ]
 
+COMPOSITIONS = [
+    "first",
+    "layered",
+    "pixels",
+]
 
 def main():
     parser = argparse.ArgumentParser("MAD CLI interface")
@@ -74,12 +77,12 @@ def main():
     database_index_parser.add_argument("--workers", "-w", type=int, default=8, help="Number of workers for downloading the metadata (default: 8)")
     database_index_parser.add_argument("--year", "-y", type=int, default=2019, help="Year from which to download the metadata from (default: 2019)")
 
-    database_download_parser = database_subparsers.add_parser("download", help="Download the provided grid")
-    database_download_parser.add_argument("grid_path", help="Path to the grid to be downloaded.")
-    database_download_parser.add_argument("download_dir", help="Path to the download directory")
-    database_download_parser.add_argument("--bands", "-b", nargs="+", choices=CHANNELS, default=CHANNELS, help="List of band names")
-    database_download_parser.add_argument("--maus", "-m", default=BASE_DIR / "data/geometries/global_mining_polygons_v2.gpkg", help="Path to the maus .gpkg",)
-    database_download_parser.add_argument("--ecoregion", "-e", default=BASE_DIR / "data/geometries/Ecoregions2017.shp", help="Path to the maus .gpkg",)
+    database_download_parser = database_subparsers.add_parser("download", help="Download the images for the selected database.")
+    database_download_parser.add_argument("datapath", help="Path to the database to download.")
+    database_download_parser.add_argument("--bands", "-b", nargs="+", choices=BANDS, default=["TCI"], help="Bands to download.")
+    database_download_parser.add_argument("--image-count", "-i", type=int, default=8, help="Number of images to compose final image (default: 8)")
+    database_download_parser.add_argument("--composition", "-c", type=str, choices=COMPOSITIONS, default="first", help="Way to compose the image (deafult: first)")
+
 
     yolo_create_parser = yolo_subparsers.add_parser("create", help="Create a yolo dataset")
     yolo_create_parser.add_argument("database", help="Path to the .tif images to use")
@@ -104,6 +107,6 @@ def main():
         case ("database", "index"):
             index_database.run(args)
         case ("database", "download"):
-            download_all.run(args)
+            download_database.run(args)
         case ("yolo", "create"):
             create_dataset.run(args)

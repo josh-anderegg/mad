@@ -1,5 +1,6 @@
 from package import BASE_DIR
 import glob
+from datetime import datetime
 import os
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -36,8 +37,10 @@ def get_metadata(name, year):
 
 def collect_logs():
     global DATABASE_PATH
+    now = datetime.now()
+    timestamp = now.strftime("%Y_%m_%d_%H_%M_%S")
     log_files = sorted(glob.glob(f"{DATABASE_PATH}/*_indexing.tlog"))
-    with open(os.path.join(DATABASE_PATH, "indexing.log"), "w") as outfile:
+    with open(os.path.join(DATABASE_PATH, f"{timestamp}_indexing.log"), "w") as outfile:
         for fname in log_files:
             with open(fname) as infile:
                 outfile.write(infile.read())
