@@ -1,5 +1,0 @@
-for i in {1..50}
-do
-    echo "Run #$i"
-    python experiment.py
-done
