@@ -9,7 +9,7 @@ PACKAGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "[$name]:Image Download" > "$LOG_FILE"
 
-finished_file="${working_dir}/${name}.tif"
+finished_file="${working_dir}/${name}.jp2"
 
 if jq -e 'length == 0' "${working_dir}${name}.json" > /dev/null; then
     echo "Skipping $name — metadata file is empty" >> "$LOG_FILE"
