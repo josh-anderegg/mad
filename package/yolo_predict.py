@@ -1,10 +1,11 @@
 from package import BASE_DIR
 from pathlib import Path
 from ultralytics import YOLO
-import os, glob
+import os
+import glob
 from shapely.ops import transform
 import rasterio
-from shapely.geometry import Point, box
+from shapely.geometry import box
 import geopandas as gpd
 import pyproj
 
