@@ -44,9 +44,21 @@ mad database download "all-australia" --bands TCI B9 B8 B7 --composition first #
 - [ ] Allow to define the amount of bytes used for a single pixel: Would allow smaller database at the cost of fidelity and needs definition of the range of values.
 
 ### Lasso
+The lasso module allows to train a Lasso regressor on a database. Subcommands include:
+1, `train` Train a regressor based on a folder containing satellite images.
+2, `predict` Using a trained regressor, perform a prediction run with performance metrics and graphs generated.
+
 #### Code snippet
+```bash
+mad lasso train "data/all-australia" "outputs/all-australia"
+mad lasso predict "data/all-australia" "outputs/all-australia"
+```
 
 #### Possible improvements
+- [ ] Ensure 100% compatibility with all the YOLO operations, namely:
+    - Seperate the outputs into different output sub-folders.
+    - Guarantee that all satellite image storage formats are supported. (`tif`, `.jp2`)
+- [ ] Allow for geolocation of prediction to enable the combination of geolocated YOLO outputs and Lasso outputs.
 ### YOLO
 #### Code snippet
 #### Possible improvements
