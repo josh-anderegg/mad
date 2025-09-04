@@ -24,6 +24,7 @@ COMPOSITIONS = [
     "pixels",
 ]
 
+
 def main():
     parser = argparse.ArgumentParser("MAD CLI interface")
 
