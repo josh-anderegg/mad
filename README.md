@@ -72,3 +72,20 @@ mad yolo predict "data/all-australia-dataset" "outputs/all-australia-dataset/tra
 #### Possible improvements
 - [ ] Avoid data inflation by caching/tracking created images per image instead of per tile.
 - [ ] Integrate nicely with the hyperparametrization that YOLO allows.
+
+# Project layout
+```
+.
+├── data
+├── journal
+├── legacy
+├── outputs
+├── package
+├── scripts
+```
+
+Generally everything concerning the `mad` executable is inside of `package`, where additional scripts that are not integrated with the executable can be found in `scripts`. `legacy` contains any scripts, that should not be run/can't be run without further effort, an example would be a previous version to download GEE images, which is still there in case someone would like to use GEE together with a Python package.
+
+`data` contains all the accessible data from within the mad package, sometimes outputs are also stored inside of `data` in case the output is used down the road (e.g. datasets derrived from the databse). `outputs` contains everything that can be considered a final output from the executable, like the `.gkpg` containing the classified mine locations from the model.
+
+`journal` contains all the presentations created within the scope of the project. Finally `pyproject.toml` contains everything needed for `pip` to install all dependencies.
