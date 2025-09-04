@@ -1,5 +1,5 @@
 import argparse
-from package import lasso_train, lasso_predict, create_grid, download_all, setup, create_dataset, create_database, index_database, download_database
+from package import lasso_train, lasso_predict, setup, create_dataset, create_database, index_database, download_database, yolo_predict, yolo_train
 from package import BASE_DIR
 
 BANDS = [
@@ -83,7 +83,6 @@ def main():
     database_download_parser.add_argument("--image-count", "-i", type=int, default=8, help="Number of images to compose final image (default: 8)")
     database_download_parser.add_argument("--composition", "-c", type=str, choices=COMPOSITIONS, default="first", help="Way to compose the image (deafult: first)")
 
-
     yolo_create_parser = yolo_subparsers.add_parser("create", help="Create a yolo dataset")
     yolo_create_parser.add_argument("database", help="Path to the .tif images to use")
     yolo_create_parser.add_argument("path", help="Output path to the final dataset")
@@ -91,6 +90,16 @@ def main():
     yolo_create_parser.add_argument("--random-seed", "-s", help="Random seed for the split")
     yolo_create_parser.add_argument("--filters", "-f", default=[], nargs="+", help="Filters to apply")
     yolo_create_parser.add_argument("--expansions", "-e", default=[], nargs="+", help="Expansions to apply")
+
+    yolo_train_parser = yolo_subparsers.add_parser("train", help="Train a yolo model according to the dataset")
+    yolo_train_parser.add_argument("dataset", help="Path to the dataset over which the model should be trained")
+    yolo_train_parser.add_argument("--output", "-o", default=None, help="Output path if a custom one is wanted. Otherwise the output has the same name as the dataset that is used to train. (default: dataset_name)")
+    yolo_train_parser.add_argument("--arguments", "-a", nargs="+", help="Further arguments to yolo, according to the yolo spec.")
+
+    yolo_predict_parser = yolo_subparsers.add_parser("predict", help="Predict files with a yolo model")
+    yolo_predict_parser.add_argument("dataset", help="Path to the dataset for which the model should perform prediction.")
+    yolo_predict_parser.add_argument("model", help="Location to the yolo model or dataset to perform prediction with.")
+    yolo_predict_parser.add_argument("--output", "-o", default=None, help="Output path if a custom one is wanted. Otherwise the location of the model is used.")
 
     args = parser.parse_args()
     action = args.action
@@ -110,3 +119,7 @@ def main():
             download_database.run(args)
         case ("yolo", "create"):
             create_dataset.run(args)
+        case ("yolo", "train"):
+            yolo_train.run(args)
+        case ("yolo", "predict"):
+            yolo_predict.run(args)
