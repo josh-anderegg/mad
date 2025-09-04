@@ -1,5 +1,5 @@
 import argparse
-from package import lasso_train, lasso_predict, setup, create_dataset, create_database, index_database, download_database, yolo_predict, yolo_train
+from package import lasso_train, lasso_predict, setup, yolo_create, database_create, database_index, database_download, yolo_predict, yolo_train
 from package import BASE_DIR
 
 BANDS = [
@@ -112,13 +112,13 @@ def main():
         case ("lasso", "predict"):
             lasso_predict.run(args)
         case ("database", "create"):
-            create_database.run(args)
+            database_create.run(args)
         case ("database", "index"):
-            index_database.run(args)
+            database_index.run(args)
         case ("database", "download"):
-            download_database.run(args)
+            database_download.run(args)
         case ("yolo", "create"):
-            create_dataset.run(args)
+            yolo_create.run(args)
         case ("yolo", "train"):
             yolo_train.run(args)
         case ("yolo", "predict"):
