@@ -1,7 +1,6 @@
 # MAD
 `mad` is a command line interface tool, allowing for the detection of mining activities worldwide. It consists of a pipeline for the downloading of satellite images, creation of datasets using the satellite images and ultimately training and predicing based on the created datasets.
 
-
 # Installation
 In order to install the package via pip simply run `pip install .` and a binary called `mad` should be added to your path.
 
@@ -45,8 +44,8 @@ mad database download "all-australia" --bands TCI B9 B8 B7 --composition first #
 
 ### Lasso
 The lasso module allows to train a Lasso regressor on a database. Subcommands include:
-1, `train` Train a regressor based on a folder containing satellite images.
-2, `predict` Using a trained regressor, perform a prediction run with performance metrics and graphs generated.
+1. `train` Train a regressor based on a folder containing satellite images.
+2. `predict` Using a trained regressor, perform a prediction run with performance metrics and graphs generated.
 
 #### Code snippet
 ```bash
@@ -60,5 +59,16 @@ mad lasso predict "data/all-australia" "outputs/all-australia"
     - Guarantee that all satellite image storage formats are supported. (`tif`, `.jp2`)
 - [ ] Allow for geolocation of prediction to enable the combination of geolocated YOLO outputs and Lasso outputs.
 ### YOLO
+The YOLO module allows to generate YOLO compatible datasets based on the downloaded database, as well as the training based on such a dataset and the prediction of a a trained YOLO model. Subcommands include:
+1. `create` Creates a dataset basedo on a database and a polygon collection.
+2. `train` Train a model based on a created dataset.
+3. `predict` Perform the prediction for a created dataset and make the output georeferenced.
 #### Code snippet
+```bash
+mad yolo create "data/all-australia" "data/all-australia-dataset" --polygons"data/geometries/maus.gpkg"
+mad yolo train "data/all-australia-dataset"
+mad yolo predict "data/all-australia-dataset" "outputs/all-australia-dataset/train/predict/models/best.pt"
+```
 #### Possible improvements
+- [ ] Avoid data inflation by caching/tracking created images per image instead of per tile.
+- [ ] Integrate nicely with the hyperparametrization that YOLO allows.
