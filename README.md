@@ -1,7 +1,7 @@
 # MAD
 `mad` is a command line interface tool, allowing for the detection of mining activities worldwide. It consists of a pipeline for the downloading of satellite images, creation of datasets using the satellite images and ultimately training and predicing based on the created datasets.
 
-# Installation
+## Installation
 In order to install the package via pip simply run `pip install .` and a binary called `mad` should be added to your path.
 
 Additionally some bash scripts have further dependencies that have to be installed beforehand:
@@ -73,7 +73,7 @@ mad yolo predict "data/all-australia-dataset" "outputs/all-australia-dataset/tra
 - [ ] Avoid data inflation by caching/tracking created images per image instead of per tile.
 - [ ] Integrate nicely with the hyperparametrization that YOLO allows.
 
-# Project layout
+## Project layout
 ```
 .
 ├── data
@@ -81,7 +81,8 @@ mad yolo predict "data/all-australia-dataset" "outputs/all-australia-dataset/tra
 ├── legacy
 ├── outputs
 ├── package
-├── scripts
+└── scripts
+
 ```
 
 Generally everything concerning the `mad` executable is inside of `package`, where additional scripts that are not integrated with the executable can be found in `scripts`. `legacy` contains any scripts, that should not be run/can't be run without further effort, an example would be a previous version to download GEE images, which is still there in case someone would like to use GEE together with a Python package.
