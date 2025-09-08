@@ -10,12 +10,12 @@ SEED = None
 
 def create_split(tile_names):
     global SPLIT
-    train_perc, val_perc, test_perc = SPLIT
+    train_percentage, val_percentage, test_percentage = SPLIT
     total = len(tile_names)
     random.shuffle(tile_names)
-    thresh1 = int(total * train_perc)
-    thresh2 = int(total * (train_perc + val_perc))
-    return tile_names[:thresh1], tile_names[thresh1:thresh2], tile_names[thresh2:]
+    threshhold1 = int(total * train_percentage)
+    threshhold2 = int(total * (train_percentage + val_percentage))
+    return tile_names[:threshhold1], tile_names[threshhold1:threshhold2], tile_names[threshhold2:]
 
 
 def get_intersection():
@@ -25,18 +25,19 @@ def get_intersection():
     except FileNotFoundError:
         print("The mgrs sentinel grid was not found, did you run `mad setup`?")
 
+    # HACK: Easiest to look at the ending, if gkpg assume it is valid, otherwise search for countries
     if INTERSECTION.endswith(".gpkg"):
         polygons = gpd.read_file(INTERSECTION)
     else:
         try:
             polygons = gpd.read_file(BASE_DIR / "data/geometries/ne_110m_admin_0_countries.shp")
+            polygons = polygons[polygons["ADMIN"] == INTERSECTION]
+            if polygons.empty:
+                raise ValueError(f"Country '{INTERSECTION}' not found in dataset.")
         except FileNotFoundError:
             print("The country polygons were not found, did you run `mad setup`?")
-
-        try:
-            polygons = polygons[polygons["ADMIN"] == INTERSECTION]
-        except Exception:
-            print("Country name seems invalid!")
+        except ValueError as e:
+            print(e)
 
     intersections = gpd.sjoin(aws_tiles, polygons, how="inner", predicate="intersects")
     tile_names = intersections['Name'].unique()
