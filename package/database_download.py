@@ -43,9 +43,9 @@ def process_tile(name):
         case "first":
             subprocess.run([BASE_DIR / "package/s3_image_download_first.sh", name, DATABASE_PATH, *BANDS,])
         case "layered":
-            pass
+            subprocess.run([BASE_DIR / "package/s3_image_download_layered.sh", name, DATABASE_PATH, *BANDS,])
         case "pixels":
-            pass
+            subprocess.run([BASE_DIR / "package/s3_image_download_pixels.sh", name, DATABASE_PATH, *BANDS,])
 
 
 def get_all_images():
