@@ -41,6 +41,7 @@ mad database download "all-australia" --bands TCI B9 B8 B7 --composition first #
 - [ ] Add `resolve` to resolve blame conflicts where image quality was low to try another download technique
 - [ ] Allow for smarter caching/combining of bands/images such that not everything is redownloaded for the same image.
 - [ ] Allow to define the amount of bytes used for a single pixel: Would allow smaller database at the cost of fidelity and needs definition of the range of values.
+- [ ] Generally improve the method to combine satellite images with someone that has specialised in this domain.
 
 ### Lasso
 The lasso module allows to train a Lasso regressor on a database. Subcommands include:
@@ -90,3 +91,8 @@ Generally everything concerning the `mad` executable is inside of `package`, whe
 `data` contains all the accessible data from within the mad package, sometimes outputs are also stored inside of `data` in case the output is used down the road (e.g. datasets derrived from the databse). `outputs` contains everything that can be considered a final output from the executable, like the `.gkpg` containing the classified mine locations from the model.
 
 `journal` contains all the presentations created within the scope of the project. Finally `pyproject.toml` contains everything needed for `pip` to install all dependencies.
+
+## Next steps
+1. Concsult someone that has experience with the processing of satellite images, maybe sentinel specifically. What is the best way to create the database images such that we never have to worry about quality/missing data ever again after some runs?
+2. Write a accompanying program that let's us iteratively improve the Australia subset. That would mean visualizing the prediction over a sentinel image, prefereably with a google maps iamge next to it, and the possibility to label the output. This should be done with a local app to ensure that it is not too slow, but should synchronize with the cloud such that multiple people can annotate data independently from each other.
+3. Work with someone that has experience in fine-tuning visual models. What hyperparameters have the biggest impact, what techniques are well fit for out specific usecase?
